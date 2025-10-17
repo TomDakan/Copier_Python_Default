@@ -1,0 +1,110 @@
+_version: v1.0.0
+
+_tasks:
+  - echo "Project {{ project_name }} generated with Copier!"
+  - pdm install
+  - git init
+  {% if precommit_install %} - pre-commit install {% endif %}
+
+_envops:
+  block_start_string: '{%'
+  block_end_string: '%}'
+  variable_start_string: '{{'
+  variable_end_string: '}}'
+
+license:
+  type: str
+  help: Choose a license
+  choices:
+    - MIT
+    - Apache-2.0
+    - Proprietary
+  default: MIT
+
+cli:
+  type: bool
+  help: Include a Typer-based CLI?
+  default: false
+
+precommit_install:
+  type: bool
+  help: Install pre-commit hooks after generation?
+  default: true
+
+python_version:
+  type: str
+  help: Python version for your project
+  default: "3.13"
+
+generate_env:
+  type: bool
+  help: Generate a .env file for local development?
+  default: false
+
+badges:
+  type: bool
+  help: Add README badges (build, coverage, docs)?
+  default: true
+
+badge_build:
+  type: str
+  help: Build badge markdown (leave blank to skip)
+  default: ""
+  when: badges
+
+badge_coverage:
+  type: str
+  help: Coverage badge markdown (leave blank to skip)
+  default: ""
+  when: badges
+
+badge_docs:
+  type: str
+  help: Docs badge markdown (leave blank to skip)
+  default: ""
+  when: badges
+
+docker_support:
+  type: bool
+  help: Include docker-compose support?
+  default: false
+
+project_slug:
+  type: str
+  help: Project slug (for package/module name)
+  default: "{{ project_name | lower | replace(' ', '-') }}"
+  validator: |
+    import re
+    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', value):
+        raise ValueError('Project slug must be a valid Python identifier (letters, numbers, underscores, not starting with a number).')
+
+project_name:
+  type: str
+  help: What is your project name?
+  default: My New Project
+
+author_name:
+  type: str
+  help: Author name
+  default: Tom Dakan
+
+description:
+  type: str
+  help: Project description
+
+  default: A description of my new project.
+
+version:
+  type: str
+  help: Initial version
+  default: 0.1.0
+
+repository_url:
+  type: str
+  help: Repository URL
+  default: "https://github.com/{{ github_username }}/{{ project_slug }}"
+
+github_username:
+  type: str
+  help: GitHub username
+  default: tomdakan

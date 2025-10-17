@@ -13,7 +13,7 @@ if _DOTENV_AVAILABLE:
     load_dotenv()
 
 class Settings(BaseSettings):
-    app_name: str = "{{ cookiecutter.project_name }}"
+    app_name: str = "{{ project_name }}"
     debug: bool = True
     secret_key: Optional[SecretStr] = None
     redis_dsn: Optional[str] = None

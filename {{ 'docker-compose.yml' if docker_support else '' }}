@@ -1,0 +1,3 @@
+{% if docker_support %}
+{% include 'docker-compose.yml.jinja' %}
+{% endif %}

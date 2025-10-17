@@ -1,0 +1,3 @@
+Copyright (c) {{ '%Y' | strftime_utc }} {{ author_name }}
+
+All Rights Reserved.
