@@ -1,0 +1,3 @@
+Copyright (c) {% now 'utc', '%Y' %} {{ cookiecutter.author_name }}
+
+All Rights Reserved.
