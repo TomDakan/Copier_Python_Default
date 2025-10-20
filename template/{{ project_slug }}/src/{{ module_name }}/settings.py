@@ -5,12 +5,14 @@ from pydantic_settings import BaseSettings
 
 try:
     from dotenv import load_dotenv  # type: ignore
+
     _DOTENV_AVAILABLE = True
 except Exception:
     _DOTENV_AVAILABLE = False
 
 if _DOTENV_AVAILABLE:
     load_dotenv()
+
 
 class Settings(BaseSettings):
     app_name: str = "{{ project_name }}"
@@ -20,5 +22,6 @@ class Settings(BaseSettings):
 
     class Config:
         pass
+
 
 settings = Settings()

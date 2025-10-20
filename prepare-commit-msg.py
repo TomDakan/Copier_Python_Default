@@ -2,7 +2,6 @@
 import sys
 import subprocess
 import shutil
-import os
 from pathlib import Path
 from subprocess import CalledProcessError
 
@@ -24,7 +23,7 @@ def main() -> int:
         return 0
 
     tty_path = "CON" if sys.platform == "win32" else "/dev/tty"
-    
+
     # Prepare arguments for the subprocess
     subprocess_args = {
         "stdin": None,
@@ -50,7 +49,7 @@ def main() -> int:
             ],
             **subprocess_args,
         )
-        
+
         backup_file = Path(get_backup_file_path())
         shutil.copyfile(commit_msg_file_path, backup_file)
 
@@ -61,7 +60,7 @@ def main() -> int:
         print(f"An unexpected error occurred: {e}", file=sys.stderr)
         return 1
     finally:
-        if 'tty' in locals() and not tty.closed:
+        if "tty" in locals() and not tty.closed:
             tty.close()
 
     return 0
@@ -69,4 +68,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     exit(main())
-

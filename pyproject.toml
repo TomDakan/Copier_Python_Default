@@ -18,7 +18,7 @@ distribution = false
 generate = { cmd = "copier copy . ./test-output --force --trust --defaults -a run_install=false", help = "Generate a test project" }
 
 # Run the QA suite inside the generated project
-test-generated = { cmd = "cd test-output && pdm install -G dev -G docs && pdm run qa", help = "Run QA suite in the generated project" }
+test-generated = { shell = "cd ./test-output/my_new_project && pdm install --dev && pdm run qa", help = "Install and run QA suite in the generated project" }
 
 # Clean up the generated test directory
 clean = { cmd = "rm -rf ./test-output", help = "Remove the generated test project" }

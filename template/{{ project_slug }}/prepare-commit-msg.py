@@ -50,7 +50,7 @@ def prepare_commit_msg(commit_msg_file: str) -> int:
                     "--write-message-to-file",
                     commit_msg_file,
                 ],
-                stdin=sys.stdin,    # Pass the interactive tty stdin to the subprocess
+                stdin=sys.stdin,  # Pass the interactive tty stdin to the subprocess
                 stdout=sys.stdout,  # Pass the tty stdout as well
             ).check_returncode()
         except CalledProcessError as error:

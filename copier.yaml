@@ -140,13 +140,13 @@ github_account:
 
 _subdirectory: template
 
-# _tasks:
+_tasks:
 #   - working_directory: "{{ project_name }}"
 #     command: "gh auth status 2>&1 | grep {{ github_account }}"
 #     when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
-#   - working_directory: "{{ project_name }}"
-#     command: "pdm install"
-#     when: "not _copier_conf.is_update"
+  - working_directory: "{{ project_slug }}"
+    command: "pdm install"
+    when: "not _copier_conf.is_update"
 #   - working_directory: "{{ project_name }}"
 #     command: "make qa/full"
 #     when: "(not _copier_conf.is_update) and ({{ run_qa_checks }})"

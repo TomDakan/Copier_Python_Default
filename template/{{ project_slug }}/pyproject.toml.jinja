@@ -1,5 +1,5 @@
 [project]
-name = "{{ project_name }}"
+name = "{{ project_slug }}"
 version = "{{ version }}"
 description = "{{ description }}"
 authors = [
@@ -37,7 +37,6 @@ Homepage = "{{ repository_url }}"
 Repository = "{{ repository_url }}"
 "Bug Tracker" = "{{ repository_url }}/issues"
 
-
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
@@ -47,8 +46,8 @@ python.use_venv = true
 python.venv_in_project = true
 
 [tool.pdm.build]
-# More explicit package discovery
-packages = [{include = "{{ project_slug }}", from = "src"}]
+# The package name (valid Python identifier, no hyphens).
+packages = [{include = "{{ module_name }}", from = "src"}]
 
 # Dependencies for project DEVELOPERS, managed by PDM.
 [tool.pdm.dev-dependencies]
