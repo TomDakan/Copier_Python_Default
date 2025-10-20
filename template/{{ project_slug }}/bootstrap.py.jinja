@@ -1,0 +1,114 @@
+import json
+import os
+import platform
+import subprocess
+import sys
+import time
+from typing import List
+
+# --- Configuration (from Copier) ---
+PROJECT_SLUG = "{{ project_slug }}"
+PROJECT_NAME = "{{ project_name }}"
+PROJECT_SUMMARY = "{{ project_summary }}"
+GITHUB_ACCOUNT = "{{ github_account }}"
+RUN_QA_CHECKS = "{{ run_qa_checks }}" == "True"
+PRECOMMIT_INSTALL = "{{ precommit_install }}" == "True"
+INITIALIZE_GIT = "{{ initialize_git }}" == "True"
+PUSH_TO_GITHUB = "{{ push_to_github }}" == "True"
+
+
+def run_command(command: List[str], check: bool = True) -> subprocess.CompletedProcess:
+    """Runs a command from the project's root directory."""
+    print(f"\n> {' '.join(command)}")
+    use_shell = platform.system() == "Windows"
+    try:
+        # Explicitly merge stderr into stdout for reliable capture
+        return subprocess.run(
+            command,
+            check=check,
+            shell=use_shell,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Error running command: {' '.join(command)}")
+        # All output is now in stdout
+        print(f"Output: {e.stdout}")
+        sys.exit(1)
+    except FileNotFoundError:
+        print(f"Error: Command '{command[0]}' not found. Is it installed and in your PATH?")
+        sys.exit(1)
+
+
+def check_gh_auth() -> bool:
+    """Checks if the user is logged into the correct GitHub account."""
+    result = run_command(["gh", "auth", "status"], check=False)
+    # Check the stdout stream, which now contains all output
+    return GITHUB_ACCOUNT in result.stdout
+
+
+def get_workflow_run_id(workflow_name: str) -> str | None:
+    """Polls for a workflow run and returns its ID."""
+    for _ in range(30):  # Poll for 30 seconds
+        result = run_command(["gh", "run", "list", "--json", "databaseId,name"])
+        runs = json.loads(result.stdout)
+        for run in runs:
+            if run.get("name") == workflow_name:
+                return str(run["databaseId"])
+        print(f"Waiting for '{workflow_name}' action to start...")
+        time.sleep(1)
+    print(f"Error: Timed out waiting for '{workflow_name}' workflow.")
+    return None
+
+
+def main():
+    """Main execution flow for initial project setup."""
+    if PUSH_TO_GITHUB:
+        print("--- Checking GitHub Authentication ---")
+        if not check_gh_auth():
+            print(f"Error: Not logged into GitHub as '{GITHUB_ACCOUNT}'. Please run 'gh auth login'.")
+            sys.exit(1)
+        print("GitHub auth successful.")
+
+    print("\n--- Installing PDM dependencies ---")
+    run_command(["pdm", "install"])
+
+    if RUN_QA_CHECKS:
+        print("\n--- Running QA checks ---")
+        run_command(["pdm", "run", "qa"])
+
+    if PRECOMMIT_INSTALL:
+        print("\n--- Installing pre-commit hooks ---")
+        run_command(["pre-commit", "install"])
+
+    if INITIALIZE_GIT:
+        print("\n--- Initializing Git repository ---")
+        run_command(["git", "init"])
+        run_command(["git", "add", "README.md"])
+        run_command(["git", "commit", "-m", "Initial Commit"])
+
+        if PUSH_TO_GITHUB:
+            print("\n--- Creating and pushing to GitHub ---")
+            run_command(["git", "add", "."])
+            run_command(["git", "commit", "-m", f"feat: Bootstrap the {PROJECT_NAME} project"])
+
+            repo_create_cmd = [
+                "gh",
+                "repo",
+                "create",
+                PROJECT_SLUG,
+                "--source=.",
+                f"--description={PROJECT_SUMMARY}",
+                "--private",
+                "--push",
+            ]
+            run_command(repo_create_cmd)
+            print(f"\nSuccessfully created and pushed to https://github.com/{GITHUB_ACCOUNT}/{PROJECT_SLUG}")
+
+    print("\n--- Bootstrap finished successfully! ---")
+
+
+if __name__ == "__main__":
+    main()
+

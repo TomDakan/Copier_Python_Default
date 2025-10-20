@@ -123,7 +123,7 @@ run_qa_checks:
 initialize_git:
   type: bool
   help: Should I initialize this project as a git repository?
-  default: true
+  default: false
 
 push_to_github:
   type: bool
@@ -134,92 +134,13 @@ push_to_github:
 github_account:
   type: str
   help: What is the github account I should use?
-  default: tomdakan
+  default: TomDakan
   when: "{{ push_to_github }}"
 
 
 _subdirectory: template
 
 _tasks:
-#   - working_directory: "{{ project_name }}"
-#     command: "gh auth status 2>&1 | grep {{ github_account }}"
-#     when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
   - working_directory: "{{ project_slug }}"
-    command: "pdm install"
-    when: "not _copier_conf.is_update"
-#   - working_directory: "{{ project_name }}"
-#     command: "make qa/full"
-#     when: "(not _copier_conf.is_update) and ({{ run_qa_checks }})"
-#   - working_directory: "{{ project_name }}"
-#     command: "pre-commit install"
-#     when: "(not _copier_conf.is_update) and ({{ precommit_install }})"
-#   - working_directory: "{{ project_name }}"
-#     command: "git init ."
-#     when: "(not _copier_conf.is_update) and ({{ initialize_git }})"
-#   - working_directory: "{{ project_name }}"
-#     command: "git add README.md"
-#     when: "(not _copier_conf.is_update) and ({{ initialize_git }})"
-#   - working_directory: "{{ project_name }}"
-#     command: "git commit -m 'Initial Commit'"
-#     when: "(not _copier_conf.is_update) and ({{ initialize_git }})"
-#   - working_directory: "{{ project_name }}"
-#     command: "git add ."
-#     when: "(not _copier_conf.is_update) and ({{ initialize_git }})"
-#   - working_directory: "{{ project_name }}"
-#     command: "git commit -m 'feat: Bootstrapped the {{ project_name }} project'"
-#     when: "(not _copier_conf.is_update) and ({{ initialize_git }})"
-#   - working_directory: "{{ project_name }}"
-#     command: >
-#       gh repo create
-#       --description="{{ project_summary }}"
-#       --source=.
-#       --homepage="https://{{ github_account }}.github.io/{{ project_name }}"
-#       --private
-#       {{ project_name }}
-#     when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
-#   - working_directory: "{{ project_name }}"
-#     command: "git push -u origin main"
-#     when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
-#   - working_directory: "{{ project_name }}"
-#     command: >
-#       while [ -z "$(gh run list --json databaseId,name | jq '.[] | select(.name == "build-docs")')" ]; do
-#         echo "Waiting for docs build action to start" && sleep 1;
-#       done
-#     when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
-#   - working_directory: "{{ project_name }}"
-#     command: >
-#       gh run list --json databaseId,name
-#       | jq '.[] | select(.name == "build-docs")'
-#       | jq '.databaseId'
-#       | xargs gh run watch --exit-status
-#     when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
-#   - working_directory: "{{ project_name }}"
-#     command: >
-#       gh api
-#       --silent
-#       --method=POST
-#       -H "Accept: application/vnd.github+json"
-#       "/repos/{{ github_account }}/{{ project_name }}/pages"
-#       -f "source[branch]=gh-pages"
-#       -f "source[path]=/"
-#       -f "build_type=legacy"
-#     when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
-#   - working_directory: "{{ project_name }}"
-#     command: >
-#       while [ -z "$(gh run list --json databaseId,name | jq '.[] | select(.name == "pages build and deployment")')" ]; do
-#         echo "Waiting for page deploy action to start" && sleep 1;
-#       done
-#     when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
-#   - working_directory: "{{ project_name }}"
-#     command: >
-#       gh run list --json databaseId,name
-#       | jq '.[] | select(.name == "pages build and deployment")'
-#       | jq '.databaseId'
-#       | xargs gh run watch --exit-status
-#     when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
-#   - command: >
-#       echo "Finished bootstrapping {{ project_name }}!"
-#     when: "not _copier_conf.is_update"
-#   - command: >
-#       echo "Check it out at https://github.com/{{ github_account }}/{{ project_name }}"
-    # when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
+    command: python bootstrap.py
+    when: not _copier_conf.is_update

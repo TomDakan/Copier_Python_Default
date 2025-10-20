@@ -64,7 +64,7 @@ docs = [
 ]
 
 [tool.pdm.scripts]
-format = "ruff format ."
+format = "ruff format . --check"
 lint = "ruff check ."
 check = "mypy ."
 test = "pytest"
@@ -86,6 +86,7 @@ warn_unused_configs = true
 [tool.ruff]
 line-length = 120
 target-version = "py313"
+exclude = ["bootstrap.py"]
 
 [tool.ruff.lint]
 select = [
