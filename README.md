@@ -33,3 +33,4 @@ You can use the following one-line commands to build a project from this repo wi
 ```bash
 copier copy --trust gh:tomdakan/main_python_template .
 ```
+testing cz commit

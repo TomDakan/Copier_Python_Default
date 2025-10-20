@@ -5,10 +5,11 @@ repos:
       - id: commitizen-prepare-commit-msg
         name: commitizen prepare-commit-msg
         # The script to execute.
-        entry: prepare-commit-msg.py
+        entry: python prepare-commit-msg.py
         # The programming language of the script.
         language: python
         # The git hook stage to run on.
+        additional_dependencies: [commitizen]
         stages: [prepare-commit-msg]
         # Ensure it runs even if files are not staged.
         always_run: true

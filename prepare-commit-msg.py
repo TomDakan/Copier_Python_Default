@@ -1,82 +1,72 @@
 #!/usr/bin/env python
-import shutil
-import subprocess
 import sys
+import subprocess
+import shutil
+import os
 from pathlib import Path
 from subprocess import CalledProcessError
 
 try:
     from commitizen.cz.utils import get_backup_file_path
 except ImportError as error:
-    print("could not import commitizen:")
-    print(error)
+    print("Could not import commitizen:", error, file=sys.stderr)
     exit(1)
 
 
-def prepare_commit_msg(commit_msg_file: str) -> int:
+def main() -> int:
     """
-    Generates a commit message using commitizen if the existing one is invalid.
+    Main function for the prepare-commit-msg hook.
     """
-    # Check if the commit message needs to be generated using commitizen.
-    # `cz check` returns a non-zero exit code if the message is not compliant.
-    exit_code = subprocess.run(
-        [
-            "cz",
-            "check",
-            "--commit-msg-file",
-            commit_msg_file,
-        ],
-        capture_output=True,
-    ).returncode
+    commit_msg_file_path = sys.argv[1]
+    commit_source = sys.argv[2] if len(sys.argv) > 2 else None
 
-    if exit_code != 0:
+    if commit_source in ("message", "template"):
+        return 0
+
+    tty_path = "CON" if sys.platform == "win32" else "/dev/tty"
+    
+    # Prepare arguments for the subprocess
+    subprocess_args = {
+        "stdin": None,
+        "check": True,
+    }
+
+    # On Windows, we need to create a new console for prompt_toolkit to work
+    if sys.platform == "win32":
+        subprocess_args["creationflags"] = subprocess.CREATE_NEW_CONSOLE
+    else:
+        # On other systems, we connect to the existing terminal
+        tty = open(tty_path)
+        subprocess_args["stdin"] = tty
+
+    try:
+        subprocess.run(
+            [
+                "cz",
+                "commit",
+                "--dry-run",
+                "--write-message-to-file",
+                commit_msg_file_path,
+            ],
+            **subprocess_args,
+        )
+        
         backup_file = Path(get_backup_file_path())
-        if backup_file.is_file():
-            # Confirm if the commit message from the backup file should be reused.
-            answer = input("retry with previous message? [y/N]: ")
-            if answer.lower() == "y":
-                shutil.copyfile(backup_file, commit_msg_file)
-                return 0
+        shutil.copyfile(commit_msg_file_path, backup_file)
 
-        # Use commitizen to generate the commit message interactively.
-        try:
-            # The `--dry-run` and `--write-message-to-file` flags tell commitizen
-            # to write the generated message to our file instead of committing.
-            subprocess.run(
-                [
-                    "cz",
-                    "commit",
-                    "--dry-run",
-                    "--write-message-to-file",
-                    commit_msg_file,
-                ],
-                stdin=sys.stdin,    # Pass the interactive tty stdin to the subprocess
-                stdout=sys.stdout,  # Pass the tty stdout as well
-            ).check_returncode()
-        except CalledProcessError as error:
-            return error.returncode
+    except CalledProcessError:
+        print("Commitizen cancelled. Aborting commit.", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}", file=sys.stderr)
+        return 1
+    finally:
+        if 'tty' in locals() and not tty.closed:
+            tty.close()
 
-        # Write the newly generated message to the backup file for future use.
-        shutil.copyfile(commit_msg_file, backup_file)
     return 0
 
 
 if __name__ == "__main__":
-    # This section makes the hook interactive by re-opening the controlling terminal.
-    # Git hooks don't always have a direct connection to the user's terminal,
-    # so we need to explicitly connect to it.
+    exit(main())
 
-    # Determine the correct terminal device path based on the operating system.
-    if sys.platform == "win32":
-        # For Windows, the console device is 'CON'.
-        tty_path = "CON"
-    else:
-        # For Unix-like systems (Linux, macOS), it's '/dev/tty'.
-        tty_path = "/dev/tty"
-
-    # Open the terminal for reading and attach it to stdin for the script.
-    # This allows the input() and commitizen prompts to be interactive.
-    with open(tty_path) as tty:
-        sys.stdin = tty
-        # Call the main function with the commit message file path provided by Git.
-        exit(prepare_commit_msg(sys.argv[1]))
