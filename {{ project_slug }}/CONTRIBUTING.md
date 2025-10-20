@@ -1,9 +1,0 @@
-# Contributing to {{ cookiecutter.project_name }}
-
-Thank you for considering contributing to this project! Please follow these guidelines:
-
-1. Fork the repository and clone it locally.
-2. Install dependencies using `pdm install`.
-3. Run `pdm run ruff check .` and `pdm run mypy src` to ensure code quality.
-4. Write tests for any new features or bug fixes.
-5. Submit a pull request with a clear description of your changes.

@@ -1,11 +1,5 @@
 _version: v1.0.0
 
-_tasks:
-  - echo "Project {{ project_name }} generated with Copier!"
-  - pdm install
-  - git init
-  {% if precommit_install %} - pre-commit install {% endif %}
-
 _envops:
   block_start_string: '{%'
   block_end_string: '%}'
@@ -29,7 +23,7 @@ cli:
 precommit_install:
   type: bool
   help: Install pre-commit hooks after generation?
-  default: true
+  default: false
 
 python_version:
   type: str
@@ -44,7 +38,7 @@ generate_env:
 badges:
   type: bool
   help: Add README badges (build, coverage, docs)?
-  default: true
+  default: false
 
 badge_build:
   type: str
@@ -69,19 +63,42 @@ docker_support:
   help: Include docker-compose support?
   default: false
 
-project_slug:
-  type: str
-  help: Project slug (for package/module name)
-  default: "{{ project_name | lower | replace(' ', '-') }}"
-  validator: |
-    import re
-    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', value):
-        raise ValueError('Project slug must be a valid Python identifier (letters, numbers, underscores, not starting with a number).')
-
 project_name:
   type: str
   help: What is your project name?
   default: My New Project
+  validator: |
+    {% if project_name|length < 4 or project_name|length > 40 %}
+    project_name must be between 4 and 40 characters
+    {% endif %}
+
+project_slug:
+  type: str
+  help: "The name for the Python package (e.g., 'my_new_project')."
+  # The default value is computed from project_name. The user can accept or edit it.
+  default: "{{ project_name | lower | replace(' ', '_') | replace('-', '_') }}"
+  # This validator ensures the name is a valid Python identifier.
+  validator: |
+    {% if not (project_slug | regex_search('^[a-z_][a-z0-9_]+$')) %}
+      '{{ project_slug }}' is not a valid Python package name. It must start with a letter or underscore, and contain only letters, numbers, and underscores.
+    {% endif %}
+
+project_summary:
+  type: str
+  help: Provide a short summary of the project.
+  default: "A short summary of {{ project_name }}"
+
+module_name:
+  type: str
+  help: What is the Python module name?
+  default: "{{ project_slug.replace('-', '_') }}"
+  validator: |
+    {% if module_name|length < 4 or module_name|length > 40 %}
+    module_name must be between 4 and 40 characters
+    {% endif %}
+    {% if not (module_name | regex_search('^[a-z][a-z0-9_]+$')) %}
+    module_name must start with a letter, followed one or more letters, digits or underscores (all lowercase).
+    {% endif %}
 
 author_name:
   type: str
@@ -91,7 +108,6 @@ author_name:
 description:
   type: str
   help: Project description
-
   default: A description of my new project.
 
 version:
@@ -99,12 +115,111 @@ version:
   help: Initial version
   default: 0.1.0
 
-repository_url:
-  type: str
-  help: Repository URL
-  default: "https://github.com/{{ github_username }}/{{ project_slug }}"
+run_qa_checks:
+  type: bool
+  help: Should I run quality checks after building?
+  default: false
 
-github_username:
+initialize_git:
+  type: bool
+  help: Should I initialize this project as a git repository?
+  default: true
+
+push_to_github:
+  type: bool
+  help: Should I publish this project to github?
+  default: "{{ initialize_git }}"
+  when: "{{ initialize_git }}"
+
+github_account:
   type: str
-  help: GitHub username
+  help: What is the github account I should use?
   default: tomdakan
+  when: "{{ push_to_github }}"
+
+
+_subdirectory: template
+
+# _tasks:
+#   - working_directory: "{{ project_name }}"
+#     command: "gh auth status 2>&1 | grep {{ github_account }}"
+#     when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
+#   - working_directory: "{{ project_name }}"
+#     command: "pdm install"
+#     when: "not _copier_conf.is_update"
+#   - working_directory: "{{ project_name }}"
+#     command: "make qa/full"
+#     when: "(not _copier_conf.is_update) and ({{ run_qa_checks }})"
+#   - working_directory: "{{ project_name }}"
+#     command: "pre-commit install"
+#     when: "(not _copier_conf.is_update) and ({{ precommit_install }})"
+#   - working_directory: "{{ project_name }}"
+#     command: "git init ."
+#     when: "(not _copier_conf.is_update) and ({{ initialize_git }})"
+#   - working_directory: "{{ project_name }}"
+#     command: "git add README.md"
+#     when: "(not _copier_conf.is_update) and ({{ initialize_git }})"
+#   - working_directory: "{{ project_name }}"
+#     command: "git commit -m 'Initial Commit'"
+#     when: "(not _copier_conf.is_update) and ({{ initialize_git }})"
+#   - working_directory: "{{ project_name }}"
+#     command: "git add ."
+#     when: "(not _copier_conf.is_update) and ({{ initialize_git }})"
+#   - working_directory: "{{ project_name }}"
+#     command: "git commit -m 'feat: Bootstrapped the {{ project_name }} project'"
+#     when: "(not _copier_conf.is_update) and ({{ initialize_git }})"
+#   - working_directory: "{{ project_name }}"
+#     command: >
+#       gh repo create
+#       --description="{{ project_summary }}"
+#       --source=.
+#       --homepage="https://{{ github_account }}.github.io/{{ project_name }}"
+#       --private
+#       {{ project_name }}
+#     when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
+#   - working_directory: "{{ project_name }}"
+#     command: "git push -u origin main"
+#     when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
+#   - working_directory: "{{ project_name }}"
+#     command: >
+#       while [ -z "$(gh run list --json databaseId,name | jq '.[] | select(.name == "build-docs")')" ]; do
+#         echo "Waiting for docs build action to start" && sleep 1;
+#       done
+#     when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
+#   - working_directory: "{{ project_name }}"
+#     command: >
+#       gh run list --json databaseId,name
+#       | jq '.[] | select(.name == "build-docs")'
+#       | jq '.databaseId'
+#       | xargs gh run watch --exit-status
+#     when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
+#   - working_directory: "{{ project_name }}"
+#     command: >
+#       gh api
+#       --silent
+#       --method=POST
+#       -H "Accept: application/vnd.github+json"
+#       "/repos/{{ github_account }}/{{ project_name }}/pages"
+#       -f "source[branch]=gh-pages"
+#       -f "source[path]=/"
+#       -f "build_type=legacy"
+#     when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
+#   - working_directory: "{{ project_name }}"
+#     command: >
+#       while [ -z "$(gh run list --json databaseId,name | jq '.[] | select(.name == "pages build and deployment")')" ]; do
+#         echo "Waiting for page deploy action to start" && sleep 1;
+#       done
+#     when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
+#   - working_directory: "{{ project_name }}"
+#     command: >
+#       gh run list --json databaseId,name
+#       | jq '.[] | select(.name == "pages build and deployment")'
+#       | jq '.databaseId'
+#       | xargs gh run watch --exit-status
+#     when: "(not _copier_conf.is_update) and ({{ push_to_github }})"
+#   - command: >
+#       echo "Finished bootstrapping {{ project_name }}!"
+#     when: "not _copier_conf.is_update"
+#   - command: >
+#       echo "Check it out at https://github.com/{{ github_account }}/{{ project_name }}"
+    # when: "(not _copier_conf.is_update) and ({{ push_to_github }})"

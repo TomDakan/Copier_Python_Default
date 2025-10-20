@@ -1,0 +1,23 @@
+repos:
+  # This section tells pre-commit to run a hook from your local files.
+  - repo: local
+    hooks:
+      - id: commitizen-prepare-commit-msg
+        name: commitizen prepare-commit-msg
+        # The script to execute.
+        entry: prepare-commit-msg.py
+        # The programming language of the script.
+        language: python
+        # The git hook stage to run on.
+        stages: [prepare-commit-msg]
+        # Ensure it runs even if files are not staged.
+        always_run: true
+        # Helps with debugging if needed.
+        verbose: true
+
+  # You can keep the branch check hook from the remote repository.
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.9.1 # Use a recent, specific version
+    hooks:
+      - id: commitizen-branch
+        stages: [pre-push]

@@ -1,0 +1,42 @@
+[project]
+name = "Default"
+version = "0.1.0"
+description = "Main template for bootstrapping python projects with testing, linting/formatting, and docs generation."
+authors = [
+    {name = "Thomas Dakan", email = "tomdakan@gmail.com"},
+]
+dependencies = ["pydantic>=2.12.2", "pydantic-settings>=2.11.0"]
+requires-python = ">=3.13"
+readme = "README.md"
+license = {text = "LicenseRef-Proprietary"}
+
+[tool.pdm]
+distribution = false
+
+[tool.pdm.scripts]
+# Generate a test project from the template in the current directory
+generate = { cmd = "copier copy . ./test-output --force --trust --defaults -a run_install=false", help = "Generate a test project" }
+
+# Run the QA suite inside the generated project
+test-generated = { cmd = "cd test-output && pdm install -G dev -G docs && pdm run qa", help = "Run QA suite in the generated project" }
+
+# Clean up the generated test directory
+clean = { cmd = "rm -rf ./test-output", help = "Remove the generated test project" }
+
+test-template = { composite = ["generate", "test-generated", "clean"] }
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "$version"
+version_scheme = "semver2"
+version_provider = "pep621"
+update_changelog_on_bump = true
+major_version_zero = true
+changelog_file = "CHANGELOG.md"
+[dependency-groups]
+dev = [
+    "commitizen>=4.9.1",
+    "pre-commit>=4.3.0",
+    "pytest>=8.4.2",
+    "copier>=9.10.3",
+]

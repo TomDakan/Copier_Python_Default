@@ -1,0 +1,100 @@
+[project]
+name = "My New Project"
+version = "0.1.0"
+description = "A description of my new project."
+authors = [
+    { name = "Tom Dakan", email = "" },
+]
+maintainers = [
+    { name = "Tom Dakan", email = "" },
+]
+requires-python = ">=3.13"
+readme = "README.md"
+license = { text = "Proprietary" }
+keywords = ["My New Project"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pydantic",
+    "pydantic-settings",
+]
+
+# Optional dependencies for package CONSUMERS.
+[project.optional-dependencies]
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+]
+
+[project.urls]
+Homepage = ""
+Repository = ""
+"Bug Tracker" = "/issues"
+
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.pdm]
+python.use_venv = true
+python.venv_in_project = true
+
+[tool.pdm.build]
+# More explicit package discovery
+packages = [{include = "my_new_project", from = "src"}]
+
+# Dependencies for project DEVELOPERS, managed by PDM.
+[tool.pdm.dev-dependencies]
+dev = [
+    "pytest",
+    "mypy",
+    "ruff",
+    "pre-commit",
+    "commitizen",
+]
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+]
+
+[tool.pdm.scripts]
+format = "ruff format ."
+lint = "ruff check ."
+check = "mypy ."
+test = "pytest"
+qa = { composite = ["format", "lint", "check", "test"] }
+deploy = "echo 'Deploying...'"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = [
+    "tests",
+]
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort (import sorting)
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
