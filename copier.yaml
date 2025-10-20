@@ -144,3 +144,8 @@ _tasks:
   - working_directory: "{{ project_slug }}"
     command: python bootstrap.py
     when: not _copier_conf.is_update
+
+  - echo "Project {{ project_name }} generated with Copier!"
+
+  - command: python -m pip install -e .[dev]
+  - "{% if precommit_install %}pre-commit install{% endif %}"

@@ -1,6 +1,5 @@
 from {{ module_name }}.settings import settings
 
-
 def test_settings():
     assert settings.app_name == "{{ project_name }}"
-    assert settings.debug is True
+    assert settings.debug is False

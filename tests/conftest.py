@@ -1,4 +1,3 @@
-import random
 from pathlib import Path
 
 import pytest
@@ -13,15 +12,12 @@ def root_path() -> str:
 def common_data() -> dict[str, str]:
     return {
         "project_name": "test-project",
+        "project_slug": "test_project",
         "package_name": "test_project",
-        "project_description": "A test Python package",
-        "project_url": "https://github.com/gotifritz/test-project",
-        "author_name": "Gotofritz",
-        "author_email": "gotofritz@users.noreply.github.com",
+        "project_description": "testing a python copier template",
+        "project_url": "https://github.com/TomDakan/Copier_Python3.13_Default",
+        "author_name": "Tom Dakan",
+        "author_email": "tomdakan@gmail.com",
+        "license": "MIT",
         "python_version": "3.13",
     }
-
-
-def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
-    """Randomise the order of tests to avoid flakiness."""
-    random.shuffle(items)

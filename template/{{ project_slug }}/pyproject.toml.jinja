@@ -8,9 +8,9 @@ authors = [
 maintainers = [
     { name = "{{ author_name }}", email = "{{ author_email }}" },
 ]
-requires-python = ">=3.13"
+requires-python = ">={{ python_version }}"
 readme = "README.md"
-license = { text = "Proprietary" }
+license = { text = "{% if license == 'Proprietary' %}Proprietary{% else %}{{ license }}{% endif %}" }
 keywords = ["{{ project_name }}"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -23,6 +23,10 @@ classifiers = [
 dependencies = [
     "pydantic",
     "pydantic-settings",
+{% if cli %}
+    "typer",
+    "rich",
+{% endif %}
 ]
 
 # Optional dependencies for package CONSUMERS.
@@ -31,6 +35,11 @@ docs = [
     "mkdocs",
     "mkdocs-material",
 ]
+
+{% if cli %}
+[project.scripts]
+"{{ project_slug }}" = "{{ module_name }}.cli.__main__:app"
+{% endif %}
 
 [project.urls]
 Homepage = "{{ repository_url }}"
@@ -53,6 +62,7 @@ packages = [{include = "{{ module_name }}", from = "src"}]
 [tool.pdm.dev-dependencies]
 dev = [
     "pytest",
+    "pytest-cov",
     "mypy",
     "ruff",
     "pre-commit",
@@ -79,13 +89,13 @@ testpaths = [
 ]
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "{{ python_version }}"
 warn_return_any = true
 warn_unused_configs = true
 
 [tool.ruff]
 line-length = 120
-target-version = "py313"
+target-version = "py{{ python_version.replace('.', '') }}"
 exclude = ["bootstrap.py"]
 
 [tool.ruff.lint]
@@ -98,3 +108,24 @@ select = [
     "C4", # flake8-comprehensions
     "UP", # pyupgrade
 ]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "$version"
+version_scheme = "semver2"
+version_provider = "pep621"
+update_changelog_on_bump = true
+major_version_zero = true
+changelog_file = "CHANGELOG.md"
+bump_message = "chore(release): bump version to $new_version [skip ci]"
+
+[tool.coverage.run]
+source = ["{{ module_name }}"]
+omit = [
+    "*/__main__.py",
+]
+
+[tool.coverage.report]
+# Fail if coverage drops below 90%
+fail_under = 90
+show_missing = true
