@@ -1,0 +1,35 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0 #updated 2025-10-20
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit # Updated repo URL
+    rev: v0.14.1 #updated 2025-10-20
+    hooks:
+      - id: ruff # Linter
+        args: [--fix] # Automatically fix lint errors
+      - id: ruff-format # Formatter
+
+  # Run mypy using the project's PDM environment
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: pdm run check # Assumes 'pdm run check' runs 'mypy .'
+        language: system
+        types: [python] # Only run on python files
+        pass_filenames: false # Mypy checks the whole project based on config
+
+{% if use_bandit %}
+  # Conditionally add bandit hook
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.6 #updated 2025-10-20
+    hooks:
+      - id: bandit
+        args: ["-r", "src/"] # Scan only the source directory
+        # Optional: Add baseline for existing projects: args: ["-r", "src/", "-b", "bandit.baseline"]
+{% endif %}
