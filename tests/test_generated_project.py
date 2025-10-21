@@ -10,7 +10,6 @@ def test_generated_project(
 ) -> None:
     """
     Generate a project and run its install, test, and lint commands.
-    Any failure in these steps will correctly fail this test.
     """
     destination_path = tmp_path / "generated_project"
     run_copy(
@@ -28,7 +27,6 @@ def test_generated_project(
     subprocess.run(["git", "init"], cwd=project_path, check=True, timeout=60)
 
     # --- Install Dependencies ---
-    # Let CalledProcessError propagate; a failed install should fail the test.
     try:
         subprocess.run(
             [sys.executable, "-m", "pdm", "install", "--dev"],
@@ -43,7 +41,6 @@ def test_generated_project(
         )
 
     # --- Run Tests ---
-    # Let CalledProcessError propagate; a failed test should fail the test.
     try:
         subprocess.run(
             [sys.executable, "-m", "pdm", "run", "pytest"],
@@ -57,7 +54,6 @@ def test_generated_project(
         )
 
     # --- Run Linter Check ---
-    # Let CalledProcessError propagate; a lint failure should fail the test.
     try:
         subprocess.run(
             [sys.executable, "-m", "pdm", "run", "ruff", "check", "."],
@@ -74,7 +70,6 @@ def test_generated_project(
         )
 
     # --- Run Formatter Check ---
-    # Let CalledProcessError propagate; a format failure should fail the test.
     try:
         subprocess.run(
             [sys.executable, "-m", "pdm", "run", "ruff", "format", ".", "--check"],
