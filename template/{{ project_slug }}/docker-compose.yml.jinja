@@ -1,8 +1,9 @@
-version: '3.8'
 services:
   app:
     build: .
-    command: python -m {{ project_slug }}
+    # Use the CLI command if enabled, otherwise keep the container alive
+    command: >
+      {% if cli %}python -m {{ project_slug }}{% else %}python -c "import time; time.sleep(float('inf'))"{% endif %}
     volumes:
       - .:/app
     environment:
