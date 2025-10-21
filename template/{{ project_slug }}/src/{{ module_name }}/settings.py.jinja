@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     app_name: str = "{{ project_name }}"
-    debug: bool = True
+    debug: bool = False
     # The Optional[X] syntax has been replaced with X | None
     secret_key: SecretStr | None = None
     redis_dsn: str | None = None
