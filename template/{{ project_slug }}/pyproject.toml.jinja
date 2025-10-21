@@ -32,8 +32,9 @@ dependencies = [
 # Optional dependencies for package CONSUMERS.
 [project.optional-dependencies]
 docs = [
-    "mkdocs",
-    "mkdocs-material",
+{%- for tool in _doc_tools %}
+    "{{ tool.name }}", # Use the variable here
+{%- endfor %}
 ]
 
 {% if cli %}
@@ -61,29 +62,35 @@ packages = [{include = "{{ module_name }}", from = "src"}]
 # Dependencies for project DEVELOPERS, managed by PDM.
 [tool.pdm.dev-dependencies]
 dev = [
-    "pytest",
-    "pytest-cov",
-    "mypy",
-    "ruff",
-    "pre-commit",
-    "commitizen",
+{%- for tool in _dev_tools %}
+    "{{ tool.name }}",
+{%- endfor %}
 ]
 docs = [
-    "mkdocs",
-    "mkdocs-material",
+{%- for tool in _doc_tools %}
+    "{{ tool.name }}",
+{%- endfor %}
 ]
 
 [tool.pdm.scripts]
-format = "ruff format . --check"
-lint = "ruff check ."
-check = "mypy ."
-test = "pytest"
-qa = { composite = ["format", "lint", "check", "test"] }
-deploy = "echo 'Deploying...'"
+{% for script in _pdm_scripts %}
+{% if script.cmd %}
+{{ script.name }} = "{{ script.cmd }}"
+{% elif script.composite %}
+# Adjust composite script if safety is included
+{% if script.name == 'qa' and use_safety %}
+{{ script.name }} = { composite = {{ script.composite | list + ['security-check'] | tojson }} }
+{% elif script.name == 'qa' %}
+{{ script.name }} = { composite = {{ script.composite | tojson }} }
+{% else %}
+{{ script.name }} = { composite = {{ script.composite | tojson }} }
+{% endif %}
+{% endif %}
+{% endfor %}
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-ra -q"
+addopts = "-ra -q --cov={{ module_name }} --cov-report=term-missing"
 testpaths = [
     "tests",
 ]
@@ -109,6 +116,7 @@ select = [
     "UP", # pyupgrade
 ]
 
+# Note: cz bump is no longer the primary release mechanism if semantic-release is used
 [tool.commitizen]
 name = "cz_conventional_commits"
 tag_format = "$version"
@@ -118,6 +126,19 @@ update_changelog_on_bump = true
 major_version_zero = true
 changelog_file = "CHANGELOG.md"
 bump_message = "chore(release): bump version to $new_version [skip ci]"
+
+{% if use_semantic_release %}
+[tool.semantic_release]
+# Configure python-semantic-release
+version_toml = ["pyproject.toml:project.version"]
+branch = "main" # Or your primary branch name
+changelog_file = "CHANGELOG.md"
+build_command = "pip install pdm && pdm build"
+dist_path = "dist/" # Where the built package is found
+upload_to_pypi = true # Set to false if you don't want CI to publish
+# Optional: If your repo isn't public on GitHub, you might need configuration
+# for commit author, etc. See semantic-release docs.
+{% endif %}
 
 [tool.coverage.run]
 source = ["{{ module_name }}"]
