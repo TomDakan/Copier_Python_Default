@@ -20,48 +20,10 @@ cli:
   help: Include a Typer-based CLI?
   default: false
 
-precommit_install:
-  type: bool
-  help: Install pre-commit hooks after generation?
-  default: false
-
 python_version:
   type: str
   help: Python version for your project
   default: "3.13"
-
-generate_env:
-  type: bool
-  help: Generate a .env file for local development?
-  default: false
-
-badges:
-  type: bool
-  help: Add README badges (build, coverage, docs)?
-  default: false
-
-badge_build:
-  type: str
-  help: Build badge markdown (leave blank to skip)
-  default: ""
-  when: badges
-
-badge_coverage:
-  type: str
-  help: Coverage badge markdown (leave blank to skip)
-  default: ""
-  when: badges
-
-badge_docs:
-  type: str
-  help: Docs badge markdown (leave blank to skip)
-  default: ""
-  when: badges
-
-docker_support:
-  type: bool
-  help: Include docker-compose support?
-  default: false
 
 project_name:
   type: str
@@ -120,6 +82,16 @@ run_qa_checks:
   help: Should I run quality checks after building?
   default: false
 
+precommit_install:
+  type: bool
+  help: Install pre-commit hooks after generation?
+  default: false
+
+docker_support:
+  type: bool
+  help: Include docker-compose support?
+  default: false
+
 initialize_git:
   type: bool
   help: Should I initialize this project as a git repository?
@@ -137,15 +109,141 @@ github_account:
   default: TomDakan
   when: "{{ push_to_github }}"
 
+use_semantic_release:
+  type: bool
+  help: Use python-semantic-release for automated releases? (Replaces manual 'cz bump')
+  default: true
+
+use_safety:
+  type: bool
+  help: Include 'safety' for dependency vulnerability checks?
+  default: true
+
+use_bandit:
+  type: bool
+  help: Include 'bandit' for security linting?
+  default: true
+
+use_dependabot:
+  type: bool
+  help: Include Dependabot configuration for automated dependency updates?
+  default: true
+
+doc_hosting_provider:
+  type: str
+  help: Where will the documentation be hosted?
+  choices:
+    - None
+    - Read the Docs
+  default: Read the Docs
+
+badges:
+  type: bool
+  help: Add README badges (build, coverage, docs)?
+  default: false
+  when: doc_hosting_provider != None
+
+badge_build:
+  type: str
+  help: Build badge markdown (leave blank to skip)
+  default: ""
+  when: badges
+
+badge_coverage:
+  type: str
+  help: Coverage badge markdown (leave blank to skip)
+  default: ""
+  when: badges
+
+badge_docs:
+  type: str
+  help: Docs badge markdown (leave blank to skip)
+  default: ""
+  when: badges
+
+_dev_tools:
+  - name: "pytest"
+    desc: "For running the test suite."
+  - name: "pytest-cov"
+    desc: "For measuring test coverage."
+  - name: "ruff"
+    desc: "All-in-one linter, formatter, and import sorter."
+  - name: "commitizen"
+    desc: "For standardized, conventional commit messages, versioning, and changelog updates."
+  - name: "mypy"
+    desc: "For static type checking."
+  - name: "python-semantic-release"
+    desc: "For automated versioning, changelog generation, and releases (used in CI)."
+  - name: "safety"
+    desc: "For checking dependencies against known security vulnerabilities."
+  - name: "bandit"
+    desc: "For finding common security issues in code."
+
+_doc_tools:
+  - name: "mkdocs"
+    desc: "A static site generator for project documentation."
+  - name: "mkdocs-material"
+    desc: "Theme for MkDocs."
+  - name: "mkdocstrings[python]"
+    desc: "For automatically generating API documentation from docstrings."
+
+_pdm_scripts:
+  - name: "format-check"
+    cmd: "ruff format . --check"
+    desc: "Check if code formatting is correct."
+  - name: "format"
+    cmd: "ruff format ."
+    desc: "Apply code formatting."
+  - name: "lint"
+    cmd: "ruff check ."
+    desc: "Run the linter."
+  - name: "check"
+    cmd: "mypy ."
+    desc: "Run static type checking."
+  - name: "test"
+    cmd: "pytest"
+    desc: "Run the test suite."
+  - name: "qa"
+    composite: ["format-check", "lint", "check", "test"]
+    desc: "Run the full quality assurance suite."
+  - name: "deploy"
+    cmd: "echo 'Deploying...'" # Placeholder, replace if needed
+    desc: "Placeholder for deployment tasks."
+  - name: "safety-check"
+    cmd: "safety check"
+    desc: "Check for known security vulnerabilities in dependencies."
+  - name: "export-docs-reqs"
+    cmd: "pdm export --group docs --without-hashes -o docs-requirements.txt"
+    desc: "Export documentation dependencies to requirements.txt for Read the Docs."
 
 _subdirectory: template
 
+_exclude:
+  # Conditionally exclude the .env file
+  - "{% if not generate_env %}.env.jinja{% endif %}"
+  
+  # Conditionally exclude docker support
+  - "{% if not docker_support %}docker-compose.yml.jinja{% endif %}"
+
+  # Conditionally exclude CLI files
+  - "{% if not cli %}src/{{ module_name }}/cli/__main__.py.jinja{% endif %}"
+
+  # Conditionally exclude security tools
+  - "{% if not use_semantic_release %}template/{{ project_slug }}/.github/workflows/release.yaml.jinja{% endif %}"
+  - "{% if not use_safety %}template/{{ project_slug }}/.github/workflows/main.yaml.jinja{% endif %}"
+
 _tasks:
-  - working_directory: "{{ project_slug }}"
-    command: python bootstrap.py
+  - command: python bootstrap.py
+    when: not _copier_conf.is_update
+
+  - comand: echo "Exporting documentation requirements for Read the Docs..."
+    when: not _copier_conf.is_update and doc_hosting_provider == 'Read the Docs'
+  - command: pdm run export-docs-reqs
+    when: not _copier_conf.is_update and doc_hosting_provider == 'Read the Docs'
+
+  - command: echo "Removing bootstrap script..."
+    when: not _copier_conf.is_update
+  - command: python -c "import os; os.remove('bootstrap.py')"
     when: not _copier_conf.is_update
 
   - echo "Project {{ project_name }} generated with Copier!"
-
-  - command: python -m pip install -e .[dev]
-  - "{% if precommit_install %}pre-commit install{% endif %}"

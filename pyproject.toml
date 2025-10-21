@@ -5,7 +5,7 @@ description = "Main template for bootstrapping python projects with testing, lin
 authors = [
     {name = "Thomas Dakan", email = "tomdakan@gmail.com"},
 ]
-dependencies = ["pydantic>=2.12.2", "pydantic-settings>=2.11.0"]
+dependencies = ["copier"]
 requires-python = ">=3.13"
 readme = "README.md"
 license = {text = "LicenseRef-Proprietary"}
@@ -40,7 +40,6 @@ dev = [
     "pre-commit>=4.3.0",
     "pytest>=8.4.2",
     "copier>=9.10.3",
-    "coverage>=7.11.0",
     "pytest-cov>=7.0.0",
 ]
 
