@@ -54,6 +54,7 @@ build_command = "pip install pdm && pdm build"
 [tool.ruff]
 line-length = 90
 target-version = "py313"
+indent-width = 4
 
 [tool.ruff.lint]
 select = [

@@ -99,6 +99,14 @@ initialize_git:
   help: Should I initialize this project as a git repository?
   default: false
 
+line_length:
+  type: int
+  help: "What line length do you want to use for code formatting and linting?"
+  default: 90
+  choices:
+    - 90
+    - 120
+
 push_to_github:
   type: bool
   help: Should I publish this project to github?
