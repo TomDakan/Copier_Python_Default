@@ -55,17 +55,32 @@ build_command = "pip install pdm && pdm build"
 line-length = 90
 target-version = "py313"
 indent-width = 4
+src = ["src"]
 
 [tool.ruff.lint]
 select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort (import sorting)
-    "B",  # flake8-bugbear
-    "C4", # flake8-comprehensions
-    "UP", # pyupgrade
+    "A", # strong, modern ruleset.
+    "E","F","W", # Standard flake8
+    "I", # isort (import sorting)
+    "UP", # pyupgrade (modernize syntax)
+    "B", # flake8-bugbear (common bugs)
+    "A", # flake8-builtins (prevents shadowing)
+    "C90", # mccabe (complexity)
+    "SIM", # flake8-simplify (refactoring)
+    "PERF", # perflint (performance)
+    "RUF", # Ruff-specific rules
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# Relax rules for tests, which commonly use 'assert'
+"tests/*" = [
+    "B018", # "useless-expression" - common in tests
+    "S101", # "assert" - tests use assert
+]
+
+[tool.ruff.format]
+quote-style = "double"
+docstring-code-format = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"

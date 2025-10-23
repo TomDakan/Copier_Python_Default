@@ -1,3 +1,4 @@
+import tomllib
 from pathlib import Path
 
 from copier import run_copy
@@ -25,33 +26,45 @@ def test_defaults(root_path: str, tmp_path: Path, common_data: dict[str, str]) -
     # assert settings.py exists
     assert (project_path / "src" / "test_project" / "settings.py").exists()
 
-    # Check pyproject.toml content for default dependencies
+    #parse pyproject.toml to check for dependencies
     content = (project_path / "pyproject.toml").read_text()
-    assert "pydantic" in content
-    assert "pydantic-settings" in content
+    toml_data = tomllib.loads(content)
+
+    main_deps = toml_data.get("project", {}).get("dependencies", [])
+    pdm_dev_deps_groups = toml_data.get("tool", {}).get("pdm", {}).get("dev-dependencies", {})
+    dev_deps = pdm_dev_deps_groups.get("dev", []) # Assuming your default group is 'dev'
+    commitizen_config = toml_data.get("tool", {}).get("commitizen", {})
+
+    # Check pyproject.toml content for default dependencies
+    assert "pydantic" in main_deps
+    assert "pydantic-settings" in main_deps
 
     # Check that CLI dependencies are NOT present by default
-    assert "typer" not in content
-    assert "rich" not in content
+    assert "typer" not in main_deps
+    assert "typer" not in dev_deps 
+    assert "rich" not in main_deps
+    assert "rich" not in dev_deps
 
     # Check that conventional commits dependencies ARE present by default
-    assert "commitizen" in content
+    assert "commitizen" in dev_deps
 
     # Check that strict development dependencies are NOT present by default
-    assert "safety" not in content
+    assert "safety" not in dev_deps
+    assert "bandit" not in dev_deps
+    assert "python-semantic-release" not in dev_deps
 
     # Check that project scripts section is NOT present by default
-    assert "[project.scripts]" not in content
+    assert "scripts" not in toml_data.get("project", {})
 
     # Check that commitizen config IS present by default
-    assert "[tool.commitizen]" in content
-    assert "bump_message = " in content
-    assert "tag_format = " in content
-    assert "update_changelog_on_bump = true" in content
-    assert 'version_provider = "pep621"' in content
+    assert "commitizen" in toml_data.get("tool", {})
+    assert "bump_message" in toml_data.get("tool", {}).get("commitizen", {})
+    assert "tag_format" in commitizen_config
+    assert commitizen_config.get("update_changelog_on_bump") is True
+    assert commitizen_config.get("version_provider") == "pep621"
 
     # Check that mypy strict settings are NOT present by default
-    assert "strict = true" not in content
+    assert toml_data.get("tool", {}).get("mypy", {}).get("strict") is not True
 
     # Check that changelog file IS defined by default
     assert "changelog_file = " in content
@@ -79,13 +92,27 @@ def test_with_cli(root_path: str, tmp_path: Path, common_data: dict[str, str]) -
     )
     project_path = destination_path / common_data["project_slug"]
     assert Path(project_path / "pyproject.toml").exists()
+    
+    # Parse pyproject.toml to check for CLI dependencies and scripts
     content = (project_path / "pyproject.toml").read_text()
+    toml_data = tomllib.loads(content)
 
-    # --- This is the corrected assertion ---
+    # Get dependency lists
+    main_deps = toml_data.get("project", {}).get("dependencies", [])
+    #pdm_dev_deps_groups = toml_data.get("tool", {}).get("pdm", {}).get("dev-dependencies", {})
+    #dev_deps = pdm_dev_deps_groups.get("dev", []) # Adjust "dev" if needed
+
+    assert "typer[all]" in main_deps
+    assert "rich" in main_deps
+
+    project_scripts = toml_data.get("project", {}).get("scripts", {})
+    assert project_scripts is not None
+
+    # check script entry point
     script_name = common_data["project_slug"]
     module_path = common_data["module_name"]
-    assert f'"{script_name}" = "{module_path}.cli.__main__:app"' in content
-    # ---
+    expected_entry = f"{module_path}.cli.__main__:app"
+    assert project_scripts.get(script_name) == expected_entry
 
     assert (project_path / "src" / "test_project" / "cli").exists()
     assert (project_path / "src" / "test_project" / "cli" / "__main__.py").exists()
@@ -104,13 +131,6 @@ def test_hello():
     assert "Hello, Tom!" in result.stdout
 """
     )
-
-    # Check for CLI dependencies
-    assert "typer" in content
-    assert "rich" in content
-
-    # Check for project scripts section
-    assert "[project.scripts]" in content
 
 def test_with_docker(root_path: str, tmp_path: Path, common_data: dict[str, str]) -> None:
     destination_path = tmp_path / "generated_project"
@@ -241,4 +261,5 @@ def test_different_python_version(
     )
     project_path = destination_path / common_data["project_slug"]
     pyproject_content = (project_path / "pyproject.toml").read_text()
-    assert 'requires-python = ">=3.12"' in pyproject_content
+    toml_data = tomllib.loads(pyproject_content)
+    assert toml_data.get("project", {}).get("requires-python") == ">=3.12"

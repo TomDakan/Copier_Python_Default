@@ -122,7 +122,7 @@ github_account:
 use_semantic_release:
   type: bool
   help: Use python-semantic-release for automated releases? (Replaces manual 'cz bump')
-  default: true
+  default: false
 
 use_safety:
   type: bool
@@ -132,7 +132,7 @@ use_safety:
 use_bandit:
   type: bool
   help: Include 'bandit' for security linting?
-  default: true
+  default: false
 
 use_dependabot:
   type: bool
@@ -162,6 +162,36 @@ badge_docs:
   help: Docs badge markdown (leave blank to skip)
   default: ""
   when: badges
+
+# --- Project Dependencies ---
+tool_typer:
+  default:
+    - name: "typer[all]"
+      desc: "For building a CLI (if included)."
+  when: false
+
+tool_rich:
+  default:
+    - name: "rich"
+      desc: "For rich text and formatting in the CLI (if included)."
+  when: false
+
+tool_pydantic_settings:
+  default:
+    - name: "pydantic-settings"
+      desc: "For managing application settings via environment variables."
+  when: false
+
+project_tools:
+  default: >-
+    {% set tools = tool_pydantic_settings %}
+    
+    {% if cli %}
+      {%   set tools = tools + tool_typer + tool_rich %}
+    {% endif %}
+
+    {{ tools }}
+  when: false
 
 # --- Development & Code Quality Tools ---
 tool_pytest:
