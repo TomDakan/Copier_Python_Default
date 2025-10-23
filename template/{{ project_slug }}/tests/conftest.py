@@ -1,6 +1,7 @@
 """
 Configuration for the pytest test suite.
 """
+
 from pathlib import Path
 
 import pytest

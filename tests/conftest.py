@@ -11,11 +11,11 @@ def root_path() -> str:
 @pytest.fixture(scope="session")
 def common_data() -> dict[str, str]:
     return {
-        "project_name": "test-project",
-        "project_slug": "test_project",
-        "package_name": "test_project",
+        "project_name": "Test Project",
+        "project_slug": "test-project",
+        "module_name": "test_project",
         "project_description": "testing a python copier template",
-        "project_url": "https://github.com/TomDakan/Copier_Python3.13_Default",
+        "repository_url": "https://github.com/TomDakan/Copier_Python3.13_Default",
         "author_name": "Tom Dakan",
         "author_email": "tomdakan@gmail.com",
         "license": "MIT",

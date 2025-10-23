@@ -11,7 +11,7 @@ def test_generated_project(
     """
     Generate a project and run its install, test, and lint commands.
     """
-    destination_path = tmp_path / "generated_project"
+    destination_path = tmp_path
     run_copy(
         root_path,
         destination_path,
@@ -19,6 +19,7 @@ def test_generated_project(
         vcs_ref="HEAD",
         defaults=True,
         skip_tasks=True,
+        unsafe=True,
     )
 
     project_path = destination_path / common_data["project_slug"]
@@ -29,15 +30,24 @@ def test_generated_project(
     # --- Install Dependencies ---
     try:
         subprocess.run(
-            [sys.executable, "-m", "pdm", "install", "--dev"],
+            [sys.executable, "-m", "pdm", "install"],
             cwd=project_path,
             check=True,
             timeout=300,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
         )
     except FileNotFoundError:  # pragma: no cover
         # Fallback if pdm is not installed as a module, but on the PATH
         subprocess.run(
-            ["pdm", "install", "--dev"], cwd=project_path, check=True, timeout=300
+            ["pdm", "install"],
+            cwd=project_path,
+            check=True,
+            timeout=300,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
         )
 
     # --- Run Tests ---
@@ -47,11 +57,28 @@ def test_generated_project(
             cwd=project_path,
             check=True,
             timeout=120,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
         )
     except FileNotFoundError:  # pragma: no cover
         subprocess.run(
-            [sys.executable, "-m", "pytest"], cwd=project_path, check=True, timeout=120
+            [sys.executable, "-m", "pytest"],
+            cwd=project_path,
+            check=True,
+            timeout=120,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
         )
+    except subprocess.CalledProcessError as e:
+        print("\n--- [Inner Pytest STDOUT] ---")
+        print(e.stdout)
+        print("--- [Inner Pytest STDERR] ---")
+        print(e.stderr)
+        print("-------------------------------\n")
+        # Re-raise the exception to ensure the outer test still fails
+        raise
 
     # --- Run Linter Check ---
     try:
@@ -60,6 +87,9 @@ def test_generated_project(
             cwd=project_path,
             check=True,
             timeout=120,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
         )
     except FileNotFoundError:  # pragma: no cover
         subprocess.run(
@@ -67,6 +97,9 @@ def test_generated_project(
             cwd=project_path,
             check=True,
             timeout=120,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
         )
 
     # --- Run Formatter Check ---
@@ -76,6 +109,9 @@ def test_generated_project(
             cwd=project_path,
             check=True,
             timeout=120,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
         )
     except FileNotFoundError:  # pragma: no cover
         subprocess.run(
@@ -83,6 +119,9 @@ def test_generated_project(
             cwd=project_path,
             check=True,
             timeout=120,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
         )
 
 
@@ -112,14 +151,23 @@ def test_generated_project_with_security_features(
     # --- Install Dependencies ---
     try:
         subprocess.run(
-            [sys.executable, "-m", "pdm", "install", "--dev"],
+            [sys.executable, "-m", "pdm", "install"],
             cwd=project_path,
             check=True,
             timeout=300,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
         )
     except FileNotFoundError:  # pragma: no cover
         subprocess.run(
-            ["pdm", "install", "--dev"], cwd=project_path, check=True, timeout=300
+            ["pdm", "install"],
+            cwd=project_path,
+            check=True,
+            timeout=300,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
         )
 
     # --- Run Safety Check ---
@@ -129,6 +177,9 @@ def test_generated_project_with_security_features(
             cwd=project_path,
             check=True,
             timeout=120,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
         )
     except FileNotFoundError:  # pragma: no cover
         subprocess.run(
@@ -136,15 +187,21 @@ def test_generated_project_with_security_features(
             cwd=project_path,
             check=True,
             timeout=120,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
         )
 
     # --- Run Bandit Check ---
     try:
         subprocess.run(
-            [sys.executable, "-m", "pdm", "run", "bandit", "-r", "."],
+            [sys.executable, "-m", "pdm", "run", "bandit-check"],
             cwd=project_path,
             check=True,
             timeout=120,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
         )
     except FileNotFoundError:  # pragma: no cover
         subprocess.run(
@@ -152,4 +209,7 @@ def test_generated_project_with_security_features(
             cwd=project_path,
             check=True,
             timeout=120,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
         )

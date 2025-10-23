@@ -26,26 +26,28 @@ dependencies = [
 {% if cli %}
     "typer",
     "rich",
-{% endif %}
+{% endif -%}
 ]
 
 # Optional dependencies for package CONSUMERS.
 [project.optional-dependencies]
 docs = [
-{%- for tool in _doc_tools %}
-    "{{ tool.name }}", # Use the variable here
+{%- for tool in doc_tools | from_yaml %}
+    "{{ tool.name }}",
 {%- endfor %}
 ]
 
 {% if cli %}
 [project.scripts]
 "{{ project_slug }}" = "{{ module_name }}.cli.__main__:app"
-{% endif %}
+{% endif -%}
 
+{% if repository_url %}
 [project.urls]
 Homepage = "{{ repository_url }}"
 Repository = "{{ repository_url }}"
 "Bug Tracker" = "{{ repository_url }}/issues"
+{% endif -%}
 
 [build-system]
 requires = ["pdm-backend"]
@@ -62,37 +64,33 @@ packages = [{include = "{{ module_name }}", from = "src"}]
 # Dependencies for project DEVELOPERS, managed by PDM.
 [tool.pdm.dev-dependencies]
 dev = [
-{%- for tool in _dev_tools %}
+{%- for tool in dev_tools | from_yaml %}
     "{{ tool.name }}",
 {%- endfor %}
 ]
 docs = [
-{%- for tool in _doc_tools %}
+{%- for tool in doc_tools | from_yaml %}
     "{{ tool.name }}",
 {%- endfor %}
 ]
 
 [tool.pdm.scripts]
-{% for script in _pdm_scripts %}
+{% for script in pdm_scripts | from_yaml -%}
 {% if script.cmd %}
 {{ script.name }} = "{{ script.cmd }}"
 {% elif script.composite %}
-# Adjust composite script if safety is included
-{% if script.name == 'qa' and use_safety %}
-{{ script.name }} = { composite = {{ script.composite | list + ['security-check'] | tojson }} }
-{% elif script.name == 'qa' %}
-{{ script.name }} = { composite = {{ script.composite | tojson }} }
-{% else %}
-{{ script.name }} = { composite = {{ script.composite | tojson }} }
-{% endif %}
-{% endif %}
-{% endfor %}
+{{ script.name }} = { composite = {{ script.composite }} }
+{%- endif %}
+{% endfor -%}
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q --cov={{ module_name }} --cov-report=term-missing"
 testpaths = [
     "tests",
+]
+pythonpath = [
+    "src",
 ]
 
 [tool.mypy]
@@ -138,15 +136,19 @@ dist_path = "dist/" # Where the built package is found
 upload_to_pypi = true # Set to false if you don't want CI to publish
 # Optional: If your repo isn't public on GitHub, you might need configuration
 # for commit author, etc. See semantic-release docs.
-{% endif %}
+{% endif -%}
+
+[tool.bandit]
+exclude_dirs = [".venv", ".tox", ".pytest_cache", "build", "dist"]
 
 [tool.coverage.run]
 source = ["{{ module_name }}"]
 omit = [
+    "tests*",
     "*/__main__.py",
 ]
 
 [tool.coverage.report]
 # Fail if coverage drops below 90%
-fail_under = 90
+fail_under = 100
 show_missing = true

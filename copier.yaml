@@ -36,19 +36,13 @@ project_name:
 
 project_slug:
   type: str
-  help: "The name for the Python package (e.g., 'my_new_project')."
+  help: "The name for the project directory (e.g., 'my-new-project'). This must be different from the module_name."
   # The default value is computed from project_name. The user can accept or edit it.
-  default: "{{ project_name | lower | replace(' ', '_') | replace('-', '_') }}"
-  # This validator ensures the name is a valid Python identifier.
+  default: "{{ project_name | lower | replace(' ', '-') }}"
   validator: |
-    {% if not (project_slug | regex_search('^[a-z_][a-z0-9_]+$')) %}
-      '{{ project_slug }}' is not a valid Python package name. It must start with a letter or underscore, and contain only letters, numbers, and underscores.
+    {% if not (project_slug | regex_search('^[a-z][a-z0-9-]+$')) %}
+      ''{{ project_slug }}' is not a valid project slug. It must start with a lowercase letter, and contain only lowercase letters, numbers, and hyphens.
     {% endif %}
-
-project_summary:
-  type: str
-  help: Provide a short summary of the project.
-  default: "A short summary of {{ project_name }}"
 
 module_name:
   type: str
@@ -61,6 +55,14 @@ module_name:
     {% if not (module_name | regex_search('^[a-z][a-z0-9_]+$')) %}
     module_name must start with a letter, followed one or more letters, digits or underscores (all lowercase).
     {% endif %}
+    {% if module_name == project_slug %}
+    module_name cannot be the same as project_slug (e.g., 'my-project' vs 'my_project'). This can cause Python import conflicts.
+    {% endif %}
+
+project_summary:
+  type: str
+  help: Provide a short summary of the project.
+  default: "A short summary of {{ project_name }}"
 
 author_name:
   type: str
@@ -129,14 +131,6 @@ use_dependabot:
   help: Include Dependabot configuration for automated dependency updates?
   default: true
 
-doc_hosting_provider:
-  type: str
-  help: Where will the documentation be hosted?
-  choices:
-    - None
-    - Read the Docs
-  default: Read the Docs
-
 badges:
   type: bool
   help: Add README badges (build, coverage, docs)?
@@ -161,60 +155,230 @@ badge_docs:
   default: ""
   when: badges
 
-_dev_tools:
-  - name: "pytest"
-    desc: "For running the test suite."
-  - name: "pytest-cov"
-    desc: "For measuring test coverage."
-  - name: "ruff"
-    desc: "All-in-one linter, formatter, and import sorter."
-  - name: "commitizen"
-    desc: "For standardized, conventional commit messages, versioning, and changelog updates."
-  - name: "mypy"
-    desc: "For static type checking."
-  - name: "python-semantic-release"
-    desc: "For automated versioning, changelog generation, and releases (used in CI)."
-  - name: "safety"
-    desc: "For checking dependencies against known security vulnerabilities."
-  - name: "bandit"
-    desc: "For finding common security issues in code."
+# --- Development & Code Quality Tools ---
+tool_pytest:
+  default:
+    - name: "pytest"
+      desc: "For running the test suite."
+  when: false
 
-_doc_tools:
-  - name: "mkdocs"
-    desc: "A static site generator for project documentation."
-  - name: "mkdocs-material"
-    desc: "Theme for MkDocs."
-  - name: "mkdocstrings[python]"
-    desc: "For automatically generating API documentation from docstrings."
+tool_pytest_cov:
+  default:
+    - name: "pytest-cov"
+      desc: "For measuring test coverage."
+  when: false
 
-_pdm_scripts:
-  - name: "format-check"
-    cmd: "ruff format . --check"
-    desc: "Check if code formatting is correct."
-  - name: "format"
-    cmd: "ruff format ."
-    desc: "Apply code formatting."
-  - name: "lint"
-    cmd: "ruff check ."
-    desc: "Run the linter."
-  - name: "check"
-    cmd: "mypy ."
-    desc: "Run static type checking."
-  - name: "test"
-    cmd: "pytest"
-    desc: "Run the test suite."
-  - name: "qa"
-    composite: ["format-check", "lint", "check", "test"]
-    desc: "Run the full quality assurance suite."
-  - name: "deploy"
-    cmd: "echo 'Deploying...'" # Placeholder, replace if needed
-    desc: "Placeholder for deployment tasks."
-  - name: "safety-check"
-    cmd: "safety check"
-    desc: "Check for known security vulnerabilities in dependencies."
-  - name: "export-docs-reqs"
-    cmd: "pdm export --group docs --without-hashes -o docs-requirements.txt"
-    desc: "Export documentation dependencies to requirements.txt for Read the Docs."
+tool_ruff:
+  default:
+    - name: "ruff"
+      desc: "All-in-one linter, formatter, and import sorter."
+  when: false
+
+tool_commitizen:
+  default:
+    - name: "commitizen"
+      desc: "For standardized, conventional commit messages."
+  when: false
+
+tool_mypy:
+  default:
+    - name: "mypy"
+      desc: "For static type checking."
+  when: false
+
+tool_semantic_release:
+  default:
+    - name: "python-semantic-release"
+      desc: "For automated versioning, changelog generation, and releases (used in CI)."
+  when: false
+
+tool_safety:
+  default:
+    - name: "safety"
+      desc: "For checking dependencies against known security vulnerabilities."
+  when: false
+
+tool_bandit:
+  default:
+    - name: "bandit"
+      desc: "For finding common security issues in code."
+  when: false
+
+# assemble final dev tools list for use in templates
+dev_tools:
+  default: >-
+    {% set base_tools =
+        tool_pytest +
+        tool_pytest_cov +
+        tool_ruff +
+        tool_commitizen +
+        tool_mypy
+    %}
+    {% if use_safety %}
+      {% set base_tools = base_tools + tool_safety %}
+    {% endif %}
+    {% if use_bandit %}
+      {% set base_tools = base_tools + tool_bandit %}
+    {% endif %}
+    {% if use_semantic_release %}
+      {% set base_tools = base_tools + tool_semantic_release %}
+    {% endif %}
+    {{ base_tools }}
+  when: false
+
+# --- Documentation Tools ---
+# Questions
+use_docs:
+  type: bool
+  help: Include documentation generation with MkDocs?
+  default: true
+
+use_mkdocstrings:
+  type: bool
+  help: Include mkdocstrings for automatic API documentation?
+  default: true
+  when: use_docs
+
+doc_hosting_provider:
+  type: str
+  help: Where will the documentation be hosted?
+  choices:
+    - None
+    - Read the Docs
+  default: Read the Docs
+  when: use_docs
+
+# tool defintions
+tool_mkdocs:
+  default:
+    - name: "mkdocs"
+      desc: "A static site generator for project documentation."
+  when: false
+tool_mkdocs_material:
+  default:
+    - name: "mkdocs-material"
+      desc: "Theme for MkDocs."
+  when: false
+tool_mkdocstrings:
+  default:
+    - name: "mkdocstrings[python]"
+      desc: "For automatically generating API documentation from docstrings."
+  when: false
+
+# assemble final doc tools list for use in templates
+doc_tools:
+  default: >-
+    {% set base_tools = [] %}
+    {% if use_docs %}
+      {% set base_tools = base_tools + tool_mkdocs + tool_mkdocs_material %}
+    {% endif %}
+    {% if use_docs and use_mkdocstrings %}
+      {% set base_tools = base_tools + tool_mkdocstrings %}
+    {% endif %}
+    {{ base_tools }}
+  when: false
+
+# --- PDM Scripts ---
+# Questions
+
+# script definitions
+script_format_check:
+  default:
+    - name: "format-check"
+      cmd: "ruff format . --check"
+      desc: "Check if code formatting is correct."
+  when: false
+script_format:
+  default:
+    - name: "format"
+      cmd: "ruff format ."
+      desc: "Apply code formatting."
+  when: false
+script_lint:
+  default:
+    - name: "lint"
+      cmd: "ruff check ."
+      desc: "Run the linter."
+  when: false
+script_type_check:
+  default:
+    - name: "type-check"
+      cmd: "mypy ."
+      desc: "Run static type checking."
+  when: false
+script_test:
+  default:
+    - name: "test"
+      cmd: "pytest"
+      desc: "Run the test suite."
+  when: false
+script_deploy:
+  default:
+    - name: "deploy"
+      cmd: "echo 'Deploying...'"
+      desc: "Placeholder for deployment tasks."
+  when: false
+script_safety_check:
+  default:
+    - name: "safety-check"
+      cmd: "safety check"
+      desc: "Check for known security vulnerabilities in dependencies."
+  when: false
+script_export_docs_reqs:
+  default:
+    - name: "export-docs-reqs"
+      cmd: "pdm export --group docs --without-hashes -o docs-requirements.txt"
+      desc: "Export documentation dependencies to requirements.txt for Read the Docs."
+  when: false
+script_bandit_check:
+  default:
+    - name: "bandit-check"
+      cmd: "bandit -r src"
+      desc: "Run Bandit security linter."
+  when: false
+
+pdm_scripts:
+  default: >-
+    {# 1. Start with the base list of static scripts #}
+    {% set base_scripts =
+        script_format_check +
+        script_format +
+        script_lint +
+        script_type_check +
+        script_test +
+        script_deploy
+    %}
+
+    {# 2. Conditionally add other static scripts #}
+    {% if use_safety %}
+      {% set base_scripts = base_scripts + script_safety_check %}
+    {% endif %}
+    {% if use_bandit %}
+      {% set base_scripts = base_scripts + script_bandit_check %}
+    {% endif %}
+    {% if use_docs %}
+      {% set base_scripts = base_scripts + script_export_docs_reqs %}
+    {% endif %}
+
+    {# 3. Define the dynamic 'qa' script composite list #}
+    {% set qa_composite = ["format-check", "lint", "type-check", "test"] %}
+    {% if use_safety %}
+      {% set qa_composite = qa_composite + ["safety-check"] %}
+    {% endif %}
+    
+    {# 4. Create the 'qa' script object as a list #}
+    {% set script_qa = [{
+        "name": "qa",
+        "composite": qa_composite,
+        "desc": "Run the full quality assurance suite."
+    }] %}
+
+    {# 5. Add the dynamic 'qa' script list to the base list #}
+    {% set base_scripts = base_scripts + script_qa %}
+    
+    {# 6. Render the final list #}
+    {{ base_scripts }}
+  when: false
 
 _subdirectory: template
 
@@ -236,7 +400,7 @@ _tasks:
   - command: python bootstrap.py
     when: not _copier_conf.is_update
 
-  - comand: echo "Exporting documentation requirements for Read the Docs..."
+  - command: echo "Exporting documentation requirements for Read the Docs..."
     when: not _copier_conf.is_update and doc_hosting_provider == 'Read the Docs'
   - command: pdm run export-docs-reqs
     when: not _copier_conf.is_update and doc_hosting_provider == 'Read the Docs'

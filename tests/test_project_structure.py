@@ -12,6 +12,7 @@ def test_defaults(root_path: str, tmp_path: Path, common_data: dict[str, str]) -
         vcs_ref="HEAD",
         defaults=True,
         skip_tasks=True,
+        unsafe=True,
     )
     project_path = destination_path / common_data["project_slug"]
     assert (project_path / "pyproject.toml").exists()
@@ -60,6 +61,7 @@ def test_defaults(root_path: str, tmp_path: Path, common_data: dict[str, str]) -
     assert "--strict-markers" not in content
     assert "--typeguard-packages=" not in content
 
+
 def test_with_cli(root_path: str, tmp_path: Path, common_data: dict[str, str]) -> None:
     destination_path = tmp_path / "generated_project"
     data = {
@@ -73,12 +75,16 @@ def test_with_cli(root_path: str, tmp_path: Path, common_data: dict[str, str]) -
         vcs_ref="HEAD",
         defaults=True,
         skip_tasks=True,
+        unsafe=True,
     )
     project_path = destination_path / common_data["project_slug"]
-    assert os.path.exists(project_path / "pyproject.toml")
+    assert Path(project_path / "pyproject.toml").exists()
     content = (project_path / "pyproject.toml").read_text()
     assert '"test_project" = "test_project.cli.__main__:app"' in content
-    assert f'"{common_data["project_slug"]}" = "{common_data["project_slug"]}.cli.__main__:app"' in content
+    assert (
+        f'"{common_data["project_slug"]}" = "{common_data["project_slug"]}.cli.__main__:app"'
+        in content
+    )
     assert (project_path / "src" / "test_project" / "cli").exists()
     assert (project_path / "src" / "test_project" / "cli" / "__main__.py").exists()
 
@@ -118,6 +124,7 @@ def test_with_docker(root_path: str, tmp_path: Path, common_data: dict[str, str]
         vcs_ref="HEAD",
         defaults=True,
         skip_tasks=True,
+        unsafe=True,
     )
     project_path = destination_path / common_data["project_slug"]
     assert (project_path / "docker-compose.yml").exists()
@@ -139,6 +146,7 @@ def test_with_badges(root_path: str, tmp_path: Path, common_data: dict[str, str]
         vcs_ref="HEAD",
         defaults=True,
         skip_tasks=True,
+        unsafe=True,
     )
     project_path = destination_path / common_data["project_slug"]
     readme_content = (project_path / "README.md").read_text()
@@ -147,7 +155,9 @@ def test_with_badges(root_path: str, tmp_path: Path, common_data: dict[str, str]
     assert "docs_badge" in readme_content
 
 
-def test_with_env_file(root_path: str, tmp_path: Path, common_data: dict[str, str]) -> None:
+def test_with_env_file(
+    root_path: str, tmp_path: Path, common_data: dict[str, str]
+) -> None:
     destination_path = tmp_path / "generated_project"
     data = {
         **common_data,
@@ -160,6 +170,7 @@ def test_with_env_file(root_path: str, tmp_path: Path, common_data: dict[str, st
         vcs_ref="HEAD",
         defaults=True,
         skip_tasks=True,
+        unsafe=True,
     )
     project_path = destination_path / common_data["project_slug"]
     assert (project_path / ".env").exists()
@@ -180,6 +191,7 @@ def test_license_proprietary(
         vcs_ref="HEAD",
         defaults=True,
         skip_tasks=True,
+        unsafe=True,
     )
     project_path = destination_path / common_data["project_slug"]
     license_content = (project_path / "LICENSE.md").read_text()
@@ -201,6 +213,7 @@ def test_license_apache(
         vcs_ref="HEAD",
         defaults=True,
         skip_tasks=True,
+        unsafe=True,
     )
     project_path = destination_path / common_data["project_slug"]
     assert (project_path / "LICENSE.md").exists()
@@ -223,6 +236,7 @@ def test_different_python_version(
         vcs_ref="HEAD",
         defaults=True,
         skip_tasks=True,
+        unsafe=True,
     )
     project_path = destination_path / common_data["project_slug"]
     pyproject_content = (project_path / "pyproject.toml").read_text()

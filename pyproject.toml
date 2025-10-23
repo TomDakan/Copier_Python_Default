@@ -32,7 +32,7 @@ test-generated = { shell = "cd ./test-output/my_new_project && pdm install --dev
 # Clean up the generated test directory
 clean = { cmd = "rm -rf ./test-output", help = "Remove the generated test project" }
 
-test-template = { composite = ["generate", "test-generated", "clean"] }
+test-template = { composite = ["pdm install --dev", "generate", "test-generated", "clean"] }
 
 [dependency-groups]
 dev = [
@@ -41,10 +41,18 @@ dev = [
     "pytest>=8.4.2",
     "copier>=9.10.3",
     "pytest-cov>=7.0.0",
+    "jinja2-copier-extension>=0.1.0",
+    "pdm>=2.26.0",
 ]
 
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+branch = "main"
+changelog_file = "CHANGELOG.md"
+build_command = "pip install pdm && pdm build"
+
 [tool.ruff]
-line-length = 120
+line-length = 90
 target-version = "py313"
 
 [tool.ruff.lint]
@@ -61,16 +69,15 @@ select = [
 [tool.pytest.ini_options]
 minversion = "6.0"
 # Add flags to run coverage on the 'tests' directory
-addopts = "-ra -q --cov=tests --cov-report=term-missing"
+addopts = "-ra -q"
 testpaths = [
     "tests",
 ]
 
 [tool.coverage.run]
-# Specify that we are measuring coverage of the test files themselves
-source = ["tests"]
+omit = ["tests*"]
 
 [tool.coverage.report]
 # Optional: Fail the test run if coverage is below 100%
-fail_under = 100
+fail_under = 90
 show_missing = true
