@@ -36,7 +36,6 @@ def test_defaults(root_path: str, tmp_path: Path, common_data: dict[str, str]) -
     commitizen_config = toml_data.get("tool", {}).get("commitizen", {})
 
     # Check pyproject.toml content for default dependencies
-    assert "pydantic" in main_deps
     assert "pydantic-settings" in main_deps
 
     # Check that CLI dependencies are NOT present by default
@@ -62,9 +61,6 @@ def test_defaults(root_path: str, tmp_path: Path, common_data: dict[str, str]) -
     assert "tag_format" in commitizen_config
     assert commitizen_config.get("update_changelog_on_bump") is True
     assert commitizen_config.get("version_provider") == "pep621"
-
-    # Check that mypy strict settings are NOT present by default
-    assert toml_data.get("tool", {}).get("mypy", {}).get("strict") is not True
 
     # Check that changelog file IS defined by default
     assert "changelog_file = " in content

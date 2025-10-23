@@ -91,9 +91,24 @@ pythonpath = [
 ]
 
 [tool.mypy]
-python_version = "{{ python_version }}"
-warn_return_any = true
+python_version = {{ python_version }}
+mypy_path = "src"
+strict = true
+
+# Additional useful strictness checks
 warn_unused_configs = true
+warn_redundant_casts = true
+warn_unreachable = true
+
+# Show file/line numbers for errors
+show_error_codes = true
+pretty = true
+
+# Relax rules for tests, which are often harder to type perfectly
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
 
 [tool.ruff]
 line-length = {{ line_length }}
