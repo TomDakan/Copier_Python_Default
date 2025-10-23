@@ -5,7 +5,7 @@ description = "Main template for bootstrapping python projects with testing, lin
 authors = [
     {name = "Thomas Dakan", email = "tomdakan@gmail.com"},
 ]
-dependencies = ["copier"]
+dependencies = ["copier>=9.10.3", "pdm>=2.26.0"]
 requires-python = ">=3.13"
 readme = "README.md"
 license = {text = "LicenseRef-Proprietary"}
@@ -34,16 +34,7 @@ clean = { cmd = "rm -rf ./test-output", help = "Remove the generated test projec
 
 test-template = { composite = ["pdm install --dev", "generate", "test-generated", "clean"] }
 
-[dependency-groups]
-dev = [
-    "commitizen>=4.9.1",
-    "pre-commit>=4.3.0",
-    "pytest>=8.4.2",
-    "copier>=9.10.3",
-    "pytest-cov>=7.0.0",
-    "jinja2-copier-extension>=0.1.0",
-    "pdm>=2.26.0",
-]
+safety = { cmd = "pdm run safety scan", help = "Run a dependency vulnerability scan with safety" }
 
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]
@@ -70,6 +61,14 @@ pretty = true
 module = "tests.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
+
+[tool.bandit]
+targets = ["src"]
+exclude_dirs = ["tests"]
+# Report issues of MEDIUM severity or higher
+level = "MEDIUM"
+# Report issues of MEDIUM confidence or higher
+confidence = "MEDIUM"
 
 [tool.ruff]
 line-length = 90
@@ -117,3 +116,15 @@ omit = ["tests*"]
 # Optional: Fail the test run if coverage is below 100%
 fail_under = 90
 show_missing = true
+[dependency-groups]
+dev = [
+    "commitizen>=4.9.1",
+    "pre-commit>=4.3.0",
+    "pytest>=8.4.2",
+    "copier>=9.10.3",
+    "pytest-cov>=7.0.0",
+    "jinja2-copier-extension>=0.1.0",
+    "pdm>=2.26.0",
+    "safety>=3.6.2",
+    "pip-audit>=2.9.0",
+]
