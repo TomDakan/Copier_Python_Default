@@ -34,7 +34,7 @@ clean = { cmd = "rm -rf ./test-output", help = "Remove the generated test projec
 
 test-template = { composite = ["pdm install --dev", "generate", "test-generated", "clean"] }
 
-safety = { cmd = "pdm run safety scan", help = "Run a dependency vulnerability scan with safety" }
+safety-scan = { cmd = "pdm run safety scan", help = "Run a dependency vulnerability scan with safety" }
 
 [tool.mypy]
 python_version = "3.13"

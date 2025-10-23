@@ -21,7 +21,7 @@ jobs:
         run: pdm install --dev
 
       - name: Check for vulnerable dependencies
-        run: pdm run safety
+        run: pdm run safety-scan
 
       - name: Run QA Suite (Format, Lint, Types, Tests)
         run: pdm run qa
