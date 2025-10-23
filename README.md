@@ -1,5 +1,6 @@
 [![Build Status](https://github.com/TomDakan/Copier_Python_Default/actions/workflows/main.yaml/badge.svg)](https://github.com/{{ github_account }}/{{ project_slug }}/actions/workflows/main.yaml)
 [![Documentation Status](https://github.com/TomDakan/Copier_Python_Default/actions/workflows/docs.yaml/badge.svg)](https://github.com//actions/workflows/docs.yaml)
+[![Coverage Status](https://codecov.io/gh/TomDakan/Copier_Python_Default/branch/main/graph/badge.svg)](https://codecov.io/gh/TomDakan/Copier_Python_Default)
 
 # Opinionated Python Project Template
 

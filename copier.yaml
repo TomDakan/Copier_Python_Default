@@ -316,6 +316,41 @@ doc_tools:
     {{ base_tools }}
   when: false
 
+# --- Pytest Markers ---
+pytest_marker_definitions:
+  when: false  # This makes it a data-only variable
+  default:
+    unit:
+      name: "unit"
+      desc: "Marks fast, self-contained unit tests."
+    integration:
+      name: "integration"
+      desc: "Marks tests that require external resources (e.g., database, network)."
+    slow:
+      name: "slow"
+      desc: "Marks tests that are slow to run."
+    cli:
+      name: "cli"
+      desc: "Marks tests for the command-line interface."
+    network:
+      name: "network"
+      desc: "Marks tests that require a live network connection."
+
+# --- Questions ---
+pytest_markers:
+  type: yaml
+  help: "Select pytest markers to include in the project."
+  choices:
+    # These choices are now keys for the dictionary above
+    - unit
+    - integration
+    - slow
+    - cli
+    - network
+  default:
+    - unit
+  multiselect: true
+
 # --- PDM Scripts ---
 # Questions
 
@@ -432,7 +467,6 @@ _exclude:
 
   # Conditionally exclude security tools
   - "{% if not use_semantic_release %}template/{{ project_slug }}/.github/workflows/release.yaml.jinja{% endif %}"
-  - "{% if not use_safety %}template/{{ project_slug }}/.github/workflows/main.yaml.jinja{% endif %}"
 
 _tasks:
   - command: python bootstrap.py

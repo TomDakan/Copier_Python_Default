@@ -152,9 +152,6 @@ def test_with_badges(root_path: str, tmp_path: Path, common_data: dict[str, str]
     data = {
         **common_data,
         "badges": True,
-        "badge_build": "build_badge",
-        "badge_coverage": "coverage_badge",
-        "badge_docs": "docs_badge",
     }
     run_copy(
         root_path,
@@ -167,9 +164,9 @@ def test_with_badges(root_path: str, tmp_path: Path, common_data: dict[str, str]
     )
     project_path = destination_path / common_data["project_slug"]
     readme_content = (project_path / "README.md").read_text()
-    assert "build_badge" in readme_content
-    assert "coverage_badge" in readme_content
-    assert "docs_badge" in readme_content
+    assert "Build Status" in readme_content
+    assert "Code Coverage" in readme_content
+    assert "Documentation Status" in readme_content
 
 
 def test_with_env_file(
