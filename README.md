@@ -1,3 +1,6 @@
+[![Build Status](https://github.com/TomDakan/Copier_Python_Default/actions/workflows/main.yaml/badge.svg)](https://github.com/{{ github_account }}/{{ project_slug }}/actions/workflows/main.yaml)
+[![Documentation Status](https://github.com/TomDakan/Copier_Python_Default/actions/workflows/docs.yaml/badge.svg)](https://github.com//actions/workflows/docs.yaml)
+
 # Opinionated Python Project Template
 
 This is a project template that spins up a new python project in about a minute. You must have python and the copier package installed to use it.
@@ -14,7 +17,6 @@ The project created by this template is pre-configured to use a modern Python to
     * mise: For managing Python versions and project-specific virtual environments automatically.
     * PDM: The primary project and dependency manager.
     * uv: (Recommended) PDM uses uv as a high-speed backend for installing and locking, if available.
-    * 
 
 
 ## Usage
