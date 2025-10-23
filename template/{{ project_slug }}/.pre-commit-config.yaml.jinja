@@ -18,10 +18,10 @@ repos:
     hooks:
       - id: mypy
         name: mypy
-        entry: pdm run check # Assumes 'pdm run check' runs 'mypy .'
+        entry: pdm run type-check
         language: system
         types: [python] # Only run on python files
-        pass_filenames: false # Mypy checks the whole project based on config
+        pass_filenames: false
 
 {% if use_bandit %}
   # Conditionally add bandit hook

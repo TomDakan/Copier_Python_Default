@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-import sys
-import subprocess
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 from subprocess import CalledProcessError
 

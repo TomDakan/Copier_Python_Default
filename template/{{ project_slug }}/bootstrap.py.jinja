@@ -37,7 +37,9 @@ def run_command(command: List[str], check: bool = True) -> subprocess.CompletedP
         print(f"Output: {e.stdout}")
         sys.exit(1)
     except FileNotFoundError:
-        print(f"Error: Command '{command[0]}' not found. Is it installed and in your PATH?")
+        print(
+            f"Error: Command '{command[0]}' not found. Is it installed and in your PATH?"
+        )
         sys.exit(1)
 
 
@@ -67,7 +69,9 @@ def main():
     if PUSH_TO_GITHUB:
         print("--- Checking GitHub Authentication ---")
         if not check_gh_auth():
-            print(f"Error: Not logged into GitHub as '{GITHUB_ACCOUNT}'. Please run 'gh auth login'.")
+            print(
+                f"Error: Not logged into GitHub as '{GITHUB_ACCOUNT}'. Please run 'gh auth login'."
+            )
             sys.exit(1)
         print("GitHub auth successful.")
 
@@ -91,7 +95,9 @@ def main():
         if PUSH_TO_GITHUB:
             print("\n--- Creating and pushing to GitHub ---")
             run_command(["git", "add", "."])
-            run_command(["git", "commit", "-m", f"feat: Bootstrap the {PROJECT_NAME} project"])
+            run_command(
+                ["git", "commit", "-m", f"feat: Bootstrap the {PROJECT_NAME} project"]
+            )
 
             repo_create_cmd = [
                 "gh",
@@ -104,11 +110,12 @@ def main():
                 "--push",
             ]
             run_command(repo_create_cmd)
-            print(f"\nSuccessfully created and pushed to https://github.com/{GITHUB_ACCOUNT}/{PROJECT_SLUG}")
+            print(
+                f"\nSuccessfully created and pushed to https://github.com/{GITHUB_ACCOUNT}/{PROJECT_SLUG}"
+            )
 
     print("\n--- Bootstrap finished successfully! ---")
 
 
 if __name__ == "__main__":
     main()
-
