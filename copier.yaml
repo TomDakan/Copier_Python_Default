@@ -119,7 +119,7 @@ use_semantic_release:
 use_safety:
   type: bool
   help: Include 'safety' for dependency vulnerability checks?
-  default: true
+  default: false
 
 use_bandit:
   type: bool

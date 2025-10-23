@@ -80,11 +80,13 @@ def test_with_cli(root_path: str, tmp_path: Path, common_data: dict[str, str]) -
     project_path = destination_path / common_data["project_slug"]
     assert Path(project_path / "pyproject.toml").exists()
     content = (project_path / "pyproject.toml").read_text()
-    assert '"test_project" = "test_project.cli.__main__:app"' in content
-    assert (
-        f'"{common_data["project_slug"]}" = "{common_data["project_slug"]}.cli.__main__:app"'
-        in content
-    )
+
+    # --- This is the corrected assertion ---
+    script_name = common_data["project_slug"]
+    module_path = common_data["module_name"]
+    assert f'"{script_name}" = "{module_path}.cli.__main__:app"' in content
+    # ---
+
     assert (project_path / "src" / "test_project" / "cli").exists()
     assert (project_path / "src" / "test_project" / "cli" / "__main__.py").exists()
 
@@ -109,7 +111,6 @@ def test_hello():
 
     # Check for project scripts section
     assert "[project.scripts]" in content
-
 
 def test_with_docker(root_path: str, tmp_path: Path, common_data: dict[str, str]) -> None:
     destination_path = tmp_path / "generated_project"
