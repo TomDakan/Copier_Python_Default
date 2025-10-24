@@ -6,9 +6,9 @@ authors = [
     {name = "Thomas Dakan", email = "tomdakan@gmail.com"},
 ]
 dependencies = ["copier>=9.10.3", "pdm>=2.26.0"]
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 readme = "README.md"
-license = {text = "LicenseRef-Proprietary"}
+license = "MIT"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
