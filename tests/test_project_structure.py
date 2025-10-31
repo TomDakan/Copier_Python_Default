@@ -170,17 +170,17 @@ def test_task_runner_just(
     )
 
     # Check for core script definitions in justfile (simple string checks)
-    assert "lint:" in justfile_content
-    assert "test *args:" in justfile_content  # Check for arg passthrough
-    assert "format:" in justfile_content
-    assert "type-check:" in justfile_content
-    assert "qa:" in justfile_content  # Check the composite script exists
+    assert "lint *args:" in justfile_content
+    assert "test *args:" in justfile_content
+    assert "format *args:" in justfile_content
+    assert "type-check *args:" in justfile_content
+    assert "qa:" in justfile_content  # Composite scripts end with a colon
 
     # Check that optional script definitions are NOT present by default
-    assert "safety-check:" not in justfile_content
-    assert "bandit-check:" not in justfile_content
-    assert "export-docs-reqs:" not in justfile_content
-    assert "adr:" not in justfile_content
+    assert "safety-check *args:" not in justfile_content
+    assert "bandit-check *args:" not in justfile_content
+    assert "export-docs-reqs *args:" not in justfile_content
+    assert "adr *args:" not in justfile_content
 
     # Check composite 'qa' script definition (look for dependencies)
     # This assumes 'qa:' is the line defining the composite task
@@ -188,12 +188,14 @@ def test_task_runner_just(
         (line for line in justfile_content.splitlines() if line.startswith("qa:")), None
     )
     assert qa_line is not None, "'qa:' definition not found in justfile"
-    assert "format-check" in qa_line
-    assert "lint" in qa_line
-    assert "type-check" in qa_line
-    assert "test" in qa_line
-    assert "safety-check" not in qa_line  # Check optional is NOT included
-    assert "bandit-check" not in qa_line  # Check optional is NOT included
+    assert "@just format-check" in justfile_content
+    assert "@just lint" in justfile_content
+    assert "@just type-check" in justfile_content
+    assert "@just test" in justfile_content
+
+    # Check that optional dependencies are NOT included in the file
+    assert "@just safety-check" not in justfile_content
+    assert "@just bandit-check" not in justfile_content
 
 
 def test_conditional_scripts_pdm(
@@ -261,8 +263,8 @@ def test_conditional_scripts_just(
         (line for line in justfile_content.splitlines() if line.startswith("qa:")), None
     )
     assert qa_line is not None
-    assert " safety-check " in qa_line  # Check for the dependency name
-    assert " bandit-check " not in qa_line
+    assert "@just safety-check" in justfile_content
+    assert "@just bandit-check" not in justfile_content
 
 
 def test_with_cli(root_path: str, tmp_path: Path, common_data: dict[str, str]) -> None:

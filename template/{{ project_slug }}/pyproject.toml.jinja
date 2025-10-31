@@ -71,14 +71,16 @@ docs = [
 {%- endfor %}
 ]
 
+{% if task_runner == 'pdm' %}
 [tool.pdm.scripts]
-{% for script in pdm_scripts | from_yaml -%}
-{% if script.cmd %}
-{{ script.name }} = "{{ script.cmd }}"
-{% elif script.composite %}
-{{ script.name }} = { composite = {{ script.composite }} }
-{%- endif %}
-{% endfor -%}
+{% for name, details in (scripts | from_yaml).items() %}
+{%   if details.composite is defined %}
+{{ name }} = { help = "{{ details.help }}", composite = {{ details.composite | tojson }} }
+{%   elif details.cmd is defined %}
+{{ name }} = { help = "{{ details.help }}", cmd = "{{ details.cmd }}" }
+{%   endif %}
+{% endfor %}
+{% endif %}
 
 [tool.pytest.ini_options]
 minversion = "6.0"

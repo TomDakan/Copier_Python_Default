@@ -1,0 +1,26 @@
+# {{ project_name }} - Task Runner
+#
+# This file is managed by Copier. DO NOT EDIT MANUALLY.
+#
+# Available tasks:
+
+# --- Quality Assurance & Testing ---
+{% for name, details in (scripts | from_yaml).items() %}
+{#
+  - We check 'if details.cmd' first to handle simple commands.
+  - Then 'if details.composite' to handle tasks that run other tasks.
+#}
+{%   if details.cmd is defined -%}
+# {{ details.help }}
+{{ name }} *args:
+    @{{ details.cmd }} {{ '{{' }} just_args {{ '}}' }}
+
+{%   elif details.composite is defined -%}
+# {{ details.help }}
+{{ name }}:
+{%     for task in details.composite -%}
+    @just {{ task }}
+{%     endfor %}
+
+{%   endif %}
+{% endfor %}

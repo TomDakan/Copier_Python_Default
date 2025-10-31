@@ -190,8 +190,9 @@ tool_pydantic_settings:
 
 project_tools:
   default: >-
-    {% set tools = tool_pydantic_settings %}
-    
+    {% set tools = [] %}  # <--- FIX 1: Start with an empty list
+    {% set _ = tools.extend(tool_pydantic_settings) %} # <--- FIX 2: Extend it
+
     {% if cli %}
       {%   set tools = tools + tool_typer + tool_rich %}
     {% endif %}
@@ -251,6 +252,8 @@ tool_bandit:
 # assemble final dev tools list for use in templates
 dev_tools:
   default: >-
+    {% set base_tools = [] %}
+
     {% set base_tools =
         tool_pytest +
         tool_pytest_cov +
@@ -258,6 +261,10 @@ dev_tools:
         tool_commitizen +
         tool_mypy
     %}
+
+    {% if cli %}
+      {% set base_tools = base_tools + tool_typer + tool_rich %}
+    {% endif %}
     {% if use_safety %}
       {% set base_tools = base_tools + tool_safety %}
     {% endif %}
@@ -460,17 +467,16 @@ scripts:
 _subdirectory: template
 
 _exclude:
-  # Conditionally exclude the .env file
-  - "{% if not generate_env %}.env.jinja{% endif %}"
-  
-  # Conditionally exclude docker support
-  - "{% if not docker_support %}docker-compose.yml.jinja{% endif %}"
+  - "{% if not generate_env %}{{ project_slug }}/.env.jinja{% endif %}"
 
-  # Conditionally exclude CLI files
-  - "{% if not cli %}src/{{ module_name }}/cli/__main__.py.jinja{% endif %}"
+  - "{% if not docker_support %}{{ project_slug }}/docker-compose.yml.jinja{% endif %}"
+
+  - "{% if not cli %}{{ project_slug }}/src/{{ module_name }}/cli/__main__.py.jinja{% endif %}"
 
   # Conditionally exclude security tools
-  - "{% if not use_semantic_release %}template/{{ project_slug }}/.github/workflows/release.yaml.jinja{% endif %}"
+  - "{% if not use_semantic_release %}{{ project_slug }}/.github/workflows/release.yaml.jinja{% endif %}"
+
+  - "{% if not task_runner == 'just' %}{{ project_slug }}/justfile{% endif %}"
 
 _tasks:
   - command: python bootstrap.py
