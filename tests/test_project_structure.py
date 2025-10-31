@@ -496,3 +496,32 @@ def test_with_typed_settings(
     
     # 5. Check that pydantic-settings is NOT a dependency
     assert "pydantic-settings" not in main_deps
+
+def test_with_codecov(
+    root_path: str, tmp_path: Path, common_data: dict[str, str]
+) -> None:
+    """Verify that the Codecov upload step is added to the CI workflow."""
+    destination_path = tmp_path / "generated_project_codecov"
+    data = {
+        **common_data,
+        "use_codecov": True,
+    }
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,  # Allow defaults for unspecified vars
+        skip_tasks=True,
+        unsafe=True,
+    )
+    project_path = destination_path / common_data["project_slug"]
+
+    # 1. Check that the main CI workflow file exists
+    ci_workflow_path = project_path / ".github" / "workflows" / "main.yaml"
+    assert ci_workflow_path.exists()
+
+    # 2. Check that the content includes the Codecov action
+    ci_workflow_content = ci_workflow_path.read_text()
+    assert "uses: codecov/codecov-action@v4" in ci_workflow_content
+    assert "secrets.CODECOV_TOKEN" in ci_workflow_content

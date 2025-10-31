@@ -28,3 +28,10 @@ jobs:
     {% endif %}
       - name: Run QA Suite (Format, Lint, Types, Tests)
         run: pdm run qa
+    {% if use_codecov %}
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          {% raw %}token: ${{ secrets.CODECOV_TOKEN }}{% endraw %}
+          fail_ci_if_error: true
+    {% endif %}
