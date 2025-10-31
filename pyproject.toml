@@ -19,23 +19,6 @@ update_changelog_on_bump = true
 major_version_zero = true
 changelog_file = "CHANGELOG.md"
 
-[tool.pdm]
-distribution = false
-
-[tool.pdm.scripts]
-# Generate a test project from the template in the current directory
-generate = { cmd = "copier copy . ./test-output --force --trust --defaults -a run_install=false", help = "Generate a test project" }
-
-# Run the QA suite inside the generated project
-test-generated = { shell = "cd ./test-output/my_new_project && pdm install --dev && pdm run qa", help = "Install and run QA suite in the generated project" }
-
-# Clean up the generated test directory
-clean = { cmd = "rm -rf ./test-output", help = "Remove the generated test project" }
-
-test-template = { composite = ["pdm install --dev", "generate", "test-generated", "clean"] }
-
-safety-scan = { cmd = "pdm run safety scan", help = "Run a dependency vulnerability scan with safety" }
-
 [tool.mypy]
 python_version = "3.13"
 mypy_path = "src"
@@ -110,6 +93,24 @@ omit = ["tests*"]
 # Optional: Fail the test run if coverage is below 100%
 fail_under = 90
 show_missing = true
+
+[tool.pdm]
+distribution = false
+
+[tool.pdm.scripts]
+# Generate a test project from the template in the current directory
+generate = { cmd = "copier copy . ./test-output --force --trust --defaults -a run_install=false", help = "Generate a test project" }
+
+# Run the QA suite inside the generated project
+test-generated = { shell = "cd ./test-output/my_new_project && pdm install --dev && pdm run qa", help = "Install and run QA suite in the generated project" }
+
+# Clean up the generated test directory
+clean = { cmd = "rm -rf ./test-output", help = "Remove the generated test project" }
+
+test-template = { composite = ["pdm install --dev", "generate", "test-generated", "clean"] }
+
+safety-scan = { cmd = "pdm run safety scan", help = "Run a dependency vulnerability scan with safety" }
+
 [dependency-groups]
 dev = [
     "commitizen>=4.9.1",
@@ -122,6 +123,7 @@ dev = [
     "safety>=3.6.2",
     "pip-audit>=2.9.0",
     "python-semantic-release>=10.4.1",
+    "ruff>=0.14.2",
 ]
 
 [tool.semantic_release]
