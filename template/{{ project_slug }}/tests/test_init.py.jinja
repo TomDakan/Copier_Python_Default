@@ -1,0 +1,9 @@
+"""Test the main package import and basic attributes."""
+
+import {{ module_name }}
+
+
+def test_package_import():
+    """Test that the package can be imported successfully."""
+    # A simple test to ensure the __init__.py is executed and the module is loaded
+    assert {{ module_name }}.__name__ == "{{ module_name }}"

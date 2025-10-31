@@ -1,34 +1,46 @@
-import sys
-from collections.abc import Generator
-from importlib import reload
+"""Tests for the configuration module."""
+
+{% if config_library == 'typed-settings' %}
+# --- Tests for typed-settings ---
+import os
+from pathlib import Path
 
 import pytest
+import typed_settings as ts
 
-from {{ module_name }} import settings as settings_module
-
+from {{ module_name }} import config
 
 @pytest.fixture
-def no_dotenv(monkeypatch: pytest.MonkeyPatch) -> Generator:
-    """Simulate python-dotenv not being installed."""
-    # Add a fake module to sys.modules to trigger the import failure
-    monkeypatch.setitem(sys.modules, "dotenv", None)
-    # Reload the settings module to re-run the import logic
-    reload(settings_module)
-    yield
-    # Remove the fake module
-    monkeypatch.delitem(sys.modules, "dotenv")
-    # Reload the settings module again to restore the original state
-    reload(settings_module)
+def patch_project_root(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    """Override the PROJECT_ROOT to point to a temp dir."""
+    # Create a dummy .env file in the temp path
+    env_file = tmp_path / ".env"
+    env_file.write_text("{{ module_name | upper }}_LOG_LEVEL=DEBUG\n")
 
+    monkeypatch.setattr(config, "PROJECT_ROOT", tmp_path)
+    return tmp_path
 
-def test_settings_no_dotenv(no_dotenv: None) -> None:
-    """Test that settings load correctly when python-dotenv is not available."""
-    assert settings_module.settings.app_name == "{{ project_name }}"
-    assert settings_module._DOTENV_AVAILABLE is False
+def test_typed_settings_load(patch_project_root: Path) -> None:
+    """Test that settings are loaded correctly from the .env file."""
+    # Reload settings to pick up the patched root
+    settings = ts.load_settings(config.Settings)
+    assert settings.log_level == "DEBUG"
 
+def test_typed_settings_load_env_var(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that environment variables override defaults."""
+    monkeypatch.setenv("{{ module_name | upper }}_LOG_LEVEL", "WARNING")
 
-def test_settings_defaults() -> None:
-    """Test the default settings values."""
-    # Access settings via the imported module, not the old 'settings' variable
-    assert settings_module.settings.app_name == "{{ project_name }}"
-    assert settings_module.settings.debug is False
+    # Reload settings to pick up the env var
+    settings = ts.load_settings(config.Settings)
+    assert settings.log_level == "WARNING"
+
+{% else %}
+# --- Tests for config_library == 'none' ---
+from {{ module_name }} import config
+
+def test_default_settings() -> None:
+    """Test the simple default settings."""
+    assert hasattr(config.settings, "log_level")
+    assert config.settings.log_level == "INFO"
+    assert not hasattr(config.settings, "app_name")  #  Ensure other settings aren't present
+{%- endif %}

@@ -32,3 +32,21 @@ repos:
         args: ["-r", "src/"] # Scan only the source directory
         # Optional: Add baseline for existing projects: args: ["-r", "src/", "-b", "bandit.baseline"]
 {% endif %}
+
+{% if use_detect_secrets %}
+- repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0 # Or the latest version
+    hooks:
+      - id: detect-secrets
+        args: ["--baseline", ".secrets.baseline"]
+        exclude: .*/tests/.* # Exclude tests from secret scanning
+
+  - repo: local
+    hooks:
+      - id: detect-secrets-baseline
+        name: Update detect-secrets baseline
+        entry: detect-secrets scan --baseline .secrets.baseline
+        language: system
+        pass_filenames: false
+        stages: [manual] # Only run when manually invoked
+{% endif %}

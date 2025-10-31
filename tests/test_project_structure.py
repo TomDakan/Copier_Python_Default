@@ -452,6 +452,7 @@ def test_different_python_version(
     toml_data = tomllib.loads(pyproject_content)
     assert toml_data.get("project", {}).get("requires-python") == ">=3.12"
 
+
 def test_with_typed_settings(
     root_path: str, tmp_path: Path, common_data: dict[str, str]
 ) -> None:
@@ -490,12 +491,13 @@ def test_with_typed_settings(
     toml_data = tomllib.loads(content)
 
     main_deps = toml_data.get("project", {}).get("dependencies", [])
-    
+
     # 4. Check that typed-settings is a dependency
     assert "typed-settings" in main_deps
-    
+
     # 5. Check that pydantic-settings is NOT a dependency
     assert "pydantic-settings" not in main_deps
+
 
 def test_with_codecov(
     root_path: str, tmp_path: Path, common_data: dict[str, str]
@@ -525,3 +527,36 @@ def test_with_codecov(
     ci_workflow_content = ci_workflow_path.read_text()
     assert "uses: codecov/codecov-action@v4" in ci_workflow_content
     assert "secrets.CODECOV_TOKEN" in ci_workflow_content
+
+
+def test_with_detect_secrets(
+    root_path: str, tmp_path: Path, common_data: dict[str, str]
+) -> None:
+    """Verify that the detect-secrets hook is added to pre-commit config."""
+    destination_path = tmp_path / "generated_project_detect_secrets"
+    data = {
+        **common_data,
+        "use_detect_secrets": True,
+    }
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+    project_path = destination_path / common_data["project_slug"]
+
+    # 1. Check that the pre-commit config file exists
+    pre_commit_path = project_path / ".pre-commit-config.yaml"
+    assert pre_commit_path.exists()
+
+    # 2. Check that the content includes the detect-secrets hook
+    pre_commit_content = pre_commit_path.read_text()
+    assert "repo: https://github.com/Yelp/detect-secrets" in pre_commit_content
+    assert "id: detect-secrets" in pre_commit_content
+    assert (
+        "id: detect-secrets-baseline" in pre_commit_content
+    )  # Check for the baseline hook

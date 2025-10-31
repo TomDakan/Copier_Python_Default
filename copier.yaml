@@ -156,6 +156,11 @@ use_codecov:
   help: Include Codecov integration for test coverage reporting?
   default: false  
 
+use_detect_secrets:
+  type: bool
+  help: "Add detect-secrets pre-commit hook for finding secrets?"
+  default: true
+
 badges:
   type: bool
   help: Add README badges (build, coverage, docs)?
