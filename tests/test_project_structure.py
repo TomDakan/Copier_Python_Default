@@ -26,13 +26,15 @@ def test_defaults(root_path: str, tmp_path: Path, common_data: dict[str, str]) -
     # assert settings.py exists
     assert (project_path / "src" / "test_project" / "settings.py").exists()
 
-    #parse pyproject.toml to check for dependencies
+    # parse pyproject.toml to check for dependencies
     content = (project_path / "pyproject.toml").read_text()
     toml_data = tomllib.loads(content)
 
     main_deps = toml_data.get("project", {}).get("dependencies", [])
-    pdm_dev_deps_groups = toml_data.get("tool", {}).get("pdm", {}).get("dev-dependencies", {})
-    dev_deps = pdm_dev_deps_groups.get("dev", []) # Assuming your default group is 'dev'
+    pdm_dev_deps_groups = (
+        toml_data.get("tool", {}).get("pdm", {}).get("dev-dependencies", {})
+    )
+    dev_deps = pdm_dev_deps_groups.get("dev", [])  # Assuming your default group is 'dev'
     commitizen_config = toml_data.get("tool", {}).get("commitizen", {})
 
     # Check pyproject.toml content for default dependencies
@@ -40,7 +42,7 @@ def test_defaults(root_path: str, tmp_path: Path, common_data: dict[str, str]) -
 
     # Check that CLI dependencies are NOT present by default
     assert "typer" not in main_deps
-    assert "typer" not in dev_deps 
+    assert "typer" not in dev_deps
     assert "rich" not in main_deps
     assert "rich" not in dev_deps
 
@@ -71,6 +73,198 @@ def test_defaults(root_path: str, tmp_path: Path, common_data: dict[str, str]) -
     assert "--typeguard-packages=" not in content
 
 
+def test_task_runner_pdm(
+    root_path: str, tmp_path: Path, common_data: dict[str, str]
+) -> None:
+    """Verify pdm scripts are generated and justfile is absent when task_runner is pdm."""
+    destination_path = tmp_path / "generated_project_pdm"
+    data = {
+        **common_data,
+        "task_runner": "pdm",
+        "use_safety": False,  # Ensure safety is off for this default check
+        "use_bandit": False,  # Ensure bandit is off
+        "doc_hosting_provider": "None",  # Ensure docs RTD is off
+    }
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,  # Allow defaults for unspecified vars
+        skip_tasks=True,
+        unsafe=True,
+    )
+    project_path = destination_path / common_data["project_slug"]
+
+    # Assert justfile is NOT created
+    assert not (project_path / "justfile").exists()
+
+    # Assert pyproject.toml exists and contains pdm scripts
+    pyproject_path = project_path / "pyproject.toml"
+    assert pyproject_path.exists()
+    content = pyproject_path.read_text()
+    toml_data = tomllib.loads(content)
+
+    pdm_scripts = toml_data.get("tool", {}).get("pdm", {}).get("scripts", {})
+    assert pdm_scripts, "[tool.pdm.scripts] section not found in pyproject.toml"
+
+    # Check for core scripts
+    assert "lint" in pdm_scripts
+    assert "test" in pdm_scripts
+    assert "format" in pdm_scripts
+    assert "type-check" in pdm_scripts
+    assert "qa" in pdm_scripts  # Check the composite script exists
+
+    # Check that optional scripts are NOT present by default
+    assert "safety-check" not in pdm_scripts
+    assert "bandit-check" not in pdm_scripts
+    assert (
+        "export-docs-reqs" not in pdm_scripts
+    )  # Assuming use_docs=False or RTD=False in common_data defaults
+    assert "adr" not in pdm_scripts  # Assuming include_adr=False in common_data defaults
+
+    # Check composite 'qa' script definition
+    qa_script = pdm_scripts.get("qa", {})
+    assert "composite" in qa_script
+    assert isinstance(qa_script["composite"], list)
+    # Check default composite members
+    expected_qa_default = ["format-check", "lint", "type-check", "test"]
+    assert all(item in qa_script["composite"] for item in expected_qa_default)
+    assert len(qa_script["composite"]) == len(expected_qa_default)  # Ensure no extras
+
+
+def test_task_runner_just(
+    root_path: str, tmp_path: Path, common_data: dict[str, str]
+) -> None:
+    """Verify justfile is generated and pdm scripts are absent when task_runner is just."""
+    destination_path = tmp_path / "generated_project_just"
+    data = {
+        **common_data,
+        "task_runner": "just",
+        "use_safety": False,  # Ensure safety is off for this default check
+        "use_bandit": False,  # Ensure bandit is off
+    }
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,  # Allow defaults for unspecified vars
+        skip_tasks=True,
+        unsafe=True,
+    )
+    project_path = destination_path / common_data["project_slug"]
+
+    # Assert justfile IS created
+    justfile_path = project_path / "justfile"
+    assert justfile_path.exists()
+    justfile_content = justfile_path.read_text()
+
+    # Assert pyproject.toml does NOT contain pdm scripts
+    pyproject_path = project_path / "pyproject.toml"
+    assert pyproject_path.exists()
+    pyproject_content = pyproject_path.read_text()
+    toml_data = tomllib.loads(pyproject_content)
+    assert "scripts" not in toml_data.get("tool", {}).get("pdm", {}), (
+        "[tool.pdm.scripts] section unexpectedly found in pyproject.toml"
+    )
+
+    # Check for core script definitions in justfile (simple string checks)
+    assert "lint:" in justfile_content
+    assert "test *args:" in justfile_content  # Check for arg passthrough
+    assert "format:" in justfile_content
+    assert "type-check:" in justfile_content
+    assert "qa:" in justfile_content  # Check the composite script exists
+
+    # Check that optional script definitions are NOT present by default
+    assert "safety-check:" not in justfile_content
+    assert "bandit-check:" not in justfile_content
+    assert "export-docs-reqs:" not in justfile_content
+    assert "adr:" not in justfile_content
+
+    # Check composite 'qa' script definition (look for dependencies)
+    # This assumes 'qa:' is the line defining the composite task
+    qa_line = next(
+        (line for line in justfile_content.splitlines() if line.startswith("qa:")), None
+    )
+    assert qa_line is not None, "'qa:' definition not found in justfile"
+    assert "format-check" in qa_line
+    assert "lint" in qa_line
+    assert "type-check" in qa_line
+    assert "test" in qa_line
+    assert "safety-check" not in qa_line  # Check optional is NOT included
+    assert "bandit-check" not in qa_line  # Check optional is NOT included
+
+
+def test_conditional_scripts_pdm(
+    root_path: str, tmp_path: Path, common_data: dict[str, str]
+) -> None:
+    """Verify optional scripts (e.g., safety) appear in pdm config when enabled."""
+    destination_path = tmp_path / "generated_project_pdm_safety"
+    data = {
+        **common_data,
+        "task_runner": "pdm",
+        "use_safety": True,  # Enable safety
+        "use_bandit": False,  # Keep bandit off
+    }
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+    project_path = destination_path / common_data["project_slug"]
+    content = (project_path / "pyproject.toml").read_text()
+    toml_data = tomllib.loads(content)
+    pdm_scripts = toml_data.get("tool", {}).get("pdm", {}).get("scripts", {})
+
+    assert "safety-check" in pdm_scripts  # Should now be present
+    assert "bandit-check" not in pdm_scripts  # Should still be absent
+
+    # Check composite 'qa' script includes safety
+    qa_script = pdm_scripts.get("qa", {})
+    assert "safety-check" in qa_script.get("composite", [])
+    assert "bandit-check" not in qa_script.get("composite", [])
+
+
+def test_conditional_scripts_just(
+    root_path: str, tmp_path: Path, common_data: dict[str, str]
+) -> None:
+    """Verify optional scripts (e.g., safety) appear in justfile when enabled."""
+    destination_path = tmp_path / "generated_project_just_safety"
+    data = {
+        **common_data,
+        "task_runner": "just",
+        "use_safety": True,  # Enable safety
+        "use_bandit": False,  # Keep bandit off
+    }
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+    project_path = destination_path / common_data["project_slug"]
+    justfile_content = (project_path / "justfile").read_text()
+
+    assert "safety-check *args:" in justfile_content  # Should now be present
+    assert "bandit-check:" not in justfile_content  # Should still be absent
+
+    # Check composite 'qa' script includes safety
+    qa_line = next(
+        (line for line in justfile_content.splitlines() if line.startswith("qa:")), None
+    )
+    assert qa_line is not None
+    assert " safety-check " in qa_line  # Check for the dependency name
+    assert " bandit-check " not in qa_line
+
+
 def test_with_cli(root_path: str, tmp_path: Path, common_data: dict[str, str]) -> None:
     destination_path = tmp_path / "generated_project"
     data = {
@@ -88,15 +282,15 @@ def test_with_cli(root_path: str, tmp_path: Path, common_data: dict[str, str]) -
     )
     project_path = destination_path / common_data["project_slug"]
     assert Path(project_path / "pyproject.toml").exists()
-    
+
     # Parse pyproject.toml to check for CLI dependencies and scripts
     content = (project_path / "pyproject.toml").read_text()
     toml_data = tomllib.loads(content)
 
     # Get dependency lists
     main_deps = toml_data.get("project", {}).get("dependencies", [])
-    #pdm_dev_deps_groups = toml_data.get("tool", {}).get("pdm", {}).get("dev-dependencies", {})
-    #dev_deps = pdm_dev_deps_groups.get("dev", []) # Adjust "dev" if needed
+    # pdm_dev_deps_groups = toml_data.get("tool", {}).get("pdm", {}).get("dev-dependencies", {})
+    # dev_deps = pdm_dev_deps_groups.get("dev", []) # Adjust "dev" if needed
 
     assert "typer[all]" in main_deps
     assert "rich" in main_deps
@@ -127,6 +321,7 @@ def test_hello():
     assert "Hello, Tom!" in result.stdout
 """
     )
+
 
 def test_with_docker(root_path: str, tmp_path: Path, common_data: dict[str, str]) -> None:
     destination_path = tmp_path / "generated_project"

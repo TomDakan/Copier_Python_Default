@@ -119,6 +119,12 @@ github_account:
   default: TomDakan
   when: "{{ push_to_github }}"
 
+task_runner:
+  type: str
+  help: "Which task runner do you want to use?"
+  choices: ["pdm", "just"]
+  default: "pdm"
+
 use_semantic_release:
   type: bool
   help: Use python-semantic-release for automated releases? (Replaces manual 'cz bump')
@@ -281,9 +287,9 @@ doc_hosting_provider:
   type: str
   help: Where will the documentation be hosted?
   choices:
-    - None
+    - "None"
     - Read the Docs
-  default: Read the Docs
+  default: "None"
   when: use_docs
 
 # tool defintions
@@ -351,107 +357,105 @@ pytest_markers:
     - unit
   multiselect: true
 
-# --- PDM Scripts ---
-# Questions
-
-# script definitions
-script_format_check:
+# --- Task Runner Scripts ---
+# --- Internal Data: Script Definitions ---
+scripts_base:
+  when: false
   default:
-    - name: "format-check"
+    format-check:
+      help: "Check if code formatting is correct (Ruff)."
       cmd: "ruff format . --check"
-      desc: "Check if code formatting is correct."
-  when: false
-script_format:
-  default:
-    - name: "format"
+    format:
+      help: "Apply code formatting (Ruff)."
       cmd: "ruff format ."
-      desc: "Apply code formatting."
-  when: false
-script_lint:
-  default:
-    - name: "lint"
-      cmd: "ruff check ."
-      desc: "Run the linter."
-  when: false
-script_type_check:
-  default:
-    - name: "type-check"
+    lint:
+      help: "Run the linter and import sorter (Ruff)."
+      cmd: "ruff check . --fix"
+    type-check:
+      help: "Run static type checking (MyPy)."
       cmd: "mypy ."
-      desc: "Run static type checking."
-  when: false
-script_test:
-  default:
-    - name: "test"
+    test:
+      help: "Run the test suite (pytest)."
       cmd: "pytest"
-      desc: "Run the test suite."
-  when: false
-script_deploy:
-  default:
-    - name: "deploy"
+    deploy:
+      help: "Placeholder for deployment tasks."
       cmd: "echo 'Deploying...'"
-      desc: "Placeholder for deployment tasks."
+
+script_safety:
   when: false
-script_safety_check:
   default:
-    - name: "safety-check"
+    safety-check:
+      help: "Check for known security vulnerabilities in dependencies."
       cmd: "safety check"
-      desc: "Check for known security vulnerabilities in dependencies."
+
+script_bandit:
   when: false
-script_export_docs_reqs:
   default:
-    - name: "export-docs-reqs"
-      cmd: "pdm export --group docs --without-hashes -o docs-requirements.txt"
-      desc: "Export documentation dependencies to requirements.txt for Read the Docs."
-  when: false
-script_bandit_check:
-  default:
-    - name: "bandit-check"
+    bandit-check:
+      help: "Run Bandit security linter."
       cmd: "bandit -r src"
-      desc: "Run Bandit security linter."
+
+script_docs_rtd:
   when: false
+  default:
+    export-docs-reqs:
+      help: "Export documentation dependencies for Read the Docs."
+      cmd: "pdm export --group docs --without-hashes -o docs-requirements.txt"
 
-pdm_scripts:
-  default: >-
-    {# 1. Start with the base list of static scripts #}
-    {% set base_scripts =
-        script_format_check +
-        script_format +
-        script_lint +
-        script_type_check +
-        script_test +
-        script_deploy
-    %}
+script_adr:
+  when: false
+  default:
+    adr:
+      help: "Create a new Architecture Decision Record."
+      cmd: "{{ _copier_python }} scripts/new_adr.py"
 
-    {# 2. Conditionally add other static scripts #}
+include_adr:
+  type: bool
+  help: Include a script for managing Architecture Decision Records (ADRs)?
+  default: false
+
+# --- Public Variable for Jinja Templates ---
+scripts:
+  when: false 
+  default: |
+    {# 1. Start with the base scripts dictionary. This now works! #}
+    {% set final_scripts = {} %}
+    {% set _ = final_scripts.update(scripts_base) %}
+    
+    {# 2. Conditionally add optional scripts. This also works. #}
     {% if use_safety %}
-      {% set base_scripts = base_scripts + script_safety_check %}
+      {% set _ = final_scripts.update(script_safety) %}
     {% endif %}
     {% if use_bandit %}
-      {% set base_scripts = base_scripts + script_bandit_check %}
+      {% set _ = final_scripts.update(script_bandit) %}
     {% endif %}
-    {% if use_docs %}
-      {% set base_scripts = base_scripts + script_export_docs_reqs %}
+    {% if doc_hosting_provider == 'Read the Docs'%}
+      {% set _ = final_scripts.update(script_docs_rtd) %}
     {% endif %}
-
-    {# 3. Define the dynamic 'qa' script composite list #}
-    {% set qa_composite = ["format-check", "lint", "type-check", "test"] %}
+    {% if include_adr %}
+      {% set _ = final_scripts.update(script_adr) %}
+    {% endif %}
+    
+    {# 3. Build the composite 'qa' task list dynamically #}
+    {% set qa_tasks = ['format-check', 'lint', 'type-check', 'test'] %}
     {% if use_safety %}
-      {% set qa_composite = qa_composite + ["safety-check"] %}
+      {% set qa_tasks = qa_tasks + ['safety-check'] %}
+    {% endif %}
+    {% if use_bandit %}
+      {% set qa_tasks = qa_tasks + ['bandit-check'] %}
     {% endif %}
     
-    {# 4. Create the 'qa' script object as a list #}
-    {% set script_qa = [{
-        "name": "qa",
-        "composite": qa_composite,
-        "desc": "Run the full quality assurance suite."
-    }] %}
-
-    {# 5. Add the dynamic 'qa' script list to the base list #}
-    {% set base_scripts = base_scripts + script_qa %}
+    {# 4. Create and add the final 'qa' script to the dictionary #}
+    {% set qa_script = {
+        'qa': {
+          'help': 'Run the full quality assurance suite.',
+          'composite': qa_tasks
+        }
+      } %}
+    {% set _ = final_scripts.update(qa_script) %}
     
-    {# 6. Render the final list #}
-    {{ base_scripts }}
-  when: false
+    {# 5. Output the complete, filtered dictionary #}
+    {{ final_scripts | to_yaml }}
 
 _subdirectory: template
 
