@@ -125,6 +125,12 @@ task_runner:
   choices: ["pdm", "just"]
   default: "pdm"
 
+config_library:
+  type: str
+  help: "Which configuration library do you want to use?"
+  choices: ["none", "typed-settings"]
+  default: "none"
+
 use_semantic_release:
   type: bool
   help: Use python-semantic-release for automated releases? (Replaces manual 'cz bump')
@@ -144,6 +150,11 @@ use_dependabot:
   type: bool
   help: Include Dependabot configuration for automated dependency updates?
   default: true
+
+use_codecov:
+  type: bool
+  help: Include Codecov integration for test coverage reporting?
+  default: false  
 
 badges:
   type: bool
@@ -188,10 +199,21 @@ tool_pydantic_settings:
       desc: "For managing application settings via environment variables."
   when: false
 
+tool_typed_settings:
+  default:
+    - name: "typed-settings"
+      desc: "Alternative to pydantic-settings for managing application settings."
+  when: false
+
 project_tools:
   default: >-
-    {% set tools = [] %}  # <--- FIX 1: Start with an empty list
-    {% set _ = tools.extend(tool_pydantic_settings) %} # <--- FIX 2: Extend it
+    {% set tools = [] %}
+
+    {% if config_library == 'typed-settings' %}
+      {% set _ = tools.extend(tool_typed_settings) %}
+    {% elif config_library == 'pydantic-settings' %}
+      {% set _ = tools.extend(tool_pydantic_settings) %}
+    {% endif %}
 
     {% if cli %}
       {%   set tools = tools + tool_typer + tool_rich %}

@@ -22,6 +22,7 @@ def test_defaults(root_path: str, tmp_path: Path, common_data: dict[str, str]) -
     assert (project_path / "src" / "test_project" / "__init__.py").exists()
     assert (project_path / ".pre-commit-config.yaml").exists()
     assert (project_path / "tests").exists()
+    assert (project_path / "src" / "test_project" / "py.typed").exists()
 
     # assert settings.py exists
     assert (project_path / "src" / "test_project" / "settings.py").exists()
@@ -36,9 +37,6 @@ def test_defaults(root_path: str, tmp_path: Path, common_data: dict[str, str]) -
     )
     dev_deps = pdm_dev_deps_groups.get("dev", [])  # Assuming your default group is 'dev'
     commitizen_config = toml_data.get("tool", {}).get("commitizen", {})
-
-    # Check pyproject.toml content for default dependencies
-    assert "pydantic-settings" in main_deps
 
     # Check that CLI dependencies are NOT present by default
     assert "typer" not in main_deps
@@ -453,3 +451,48 @@ def test_different_python_version(
     pyproject_content = (project_path / "pyproject.toml").read_text()
     toml_data = tomllib.loads(pyproject_content)
     assert toml_data.get("project", {}).get("requires-python") == ">=3.12"
+
+def test_with_typed_settings(
+    root_path: str, tmp_path: Path, common_data: dict[str, str]
+) -> None:
+    """Verify that the typed-settings config is generated correctly."""
+    destination_path = tmp_path / "generated_project_typed_settings"
+    data = {
+        **common_data,
+        "config_library": "typed-settings",
+    }
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,  # Allow defaults for unspecified vars
+        skip_tasks=True,
+        unsafe=True,
+    )
+    project_path = destination_path / common_data["project_slug"]
+    module_path_str = common_data["module_name"]
+
+    # 1. Check that config.py exists
+    config_file_path = project_path / "src" / module_path_str / "config.py"
+    assert config_file_path.exists()
+
+    # 2. Check that the content is correct for typed-settings
+    config_content = config_file_path.read_text()
+    assert "import typed_settings as ts" in config_content
+    assert "@ts.settings" in config_content
+    assert "pydantic_settings" not in config_content
+
+    # 3. Check pyproject.toml for correct dependencies
+    pyproject_path = project_path / "pyproject.toml"
+    assert pyproject_path.exists()
+    content = pyproject_path.read_text()
+    toml_data = tomllib.loads(content)
+
+    main_deps = toml_data.get("project", {}).get("dependencies", [])
+    
+    # 4. Check that typed-settings is a dependency
+    assert "typed-settings" in main_deps
+    
+    # 5. Check that pydantic-settings is NOT a dependency
+    assert "pydantic-settings" not in main_deps
