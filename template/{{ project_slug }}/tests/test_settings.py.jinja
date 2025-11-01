@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 import typed_settings as ts
 
+
 from {{ module_name }} import config
 
 @pytest.fixture
@@ -33,14 +34,17 @@ def test_typed_settings_load_env_var(monkeypatch: pytest.MonkeyPatch) -> None:
     # Reload settings to pick up the env var
     settings = ts.load_settings(config.Settings)
     assert settings.log_level == "WARNING"
+{% else -%}
 
-{% else %}
 # --- Tests for config_library == 'none' ---
 from {{ module_name }} import config
+
 
 def test_default_settings() -> None:
     """Test the simple default settings."""
     assert hasattr(config.settings, "log_level")
     assert config.settings.log_level == "INFO"
-    assert not hasattr(config.settings, "app_name")  #  Ensure other settings aren't present
+
+    #  Ensure other settings aren't present
+    assert not hasattr(config.settings, "app_name")
 {%- endif %}

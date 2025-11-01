@@ -38,7 +38,9 @@ try:
     settings = ts.load_settings(Settings)
 except (ts.ConfigError, FileNotFoundError) as e:
     logging.error(f"Error loading configuration: {e}")
+
     # Fallback to default settings on error
+
     settings = Settings()
 
 {% elif config_library == 'pydantic-settings' %}
@@ -61,16 +63,18 @@ except (ts.ConfigError, FileNotFoundError) as e:
 # settings = Settings()
 pass
 
-{% else %}
+{% else -%}
 # No configuration library selected.
 # You can define simple module-level variables here.
 LOG_LEVEL = "INFO"
 # API_KEY = "your_api_key_here"
 
+
 # Or, if you need a settings object for consistency:
 class Settings:
     log_level: str = LOG_LEVEL
     # api_key: str = API_KEY
+
 
 settings = Settings()
 {%- endif %}
