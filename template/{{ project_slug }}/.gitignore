@@ -21,9 +21,6 @@ venv.bak/
 .coverage
 coverage.xml
 
-# VSCode
-.vscode/
-
 # Byte-compiled / optimized / DLL files
 *.py[codz]
 *$py.class
