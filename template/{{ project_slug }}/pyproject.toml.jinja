@@ -121,7 +121,15 @@ disallow_incomplete_defs = false
 line-length = {{ line_length }}
 target-version = "py{{ python_version.replace('.', '') }}"
 src = ["src"]
-exclude = ["bootstrap.py"]
+exclude = [
+    ".venv",
+    "venv",
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "boostrap.py",
+]
 
 [tool.ruff.lint]
 select = [

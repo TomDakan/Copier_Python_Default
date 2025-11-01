@@ -113,9 +113,15 @@ push_to_github:
   default: "{{ initialize_git }}"
   when: "{{ initialize_git }}"
 
-github_account:
+is_private:
+  type: bool
+  help: Will this be a private repository?
+  default: False
+  when: "{{ push_to_github }}"
+
+github_username:
   type: str
-  help: What is the github account I should use?
+  help: What is the github username I should use?
   default: TomDakan
   when: "{{ push_to_github }}"
 
@@ -398,7 +404,7 @@ scripts_base:
   default:
     format-check:
       help: "Check if code formatting is correct (Ruff)."
-      cmd: "ruff format . --check"
+      cmd: "ruff format . --diff"
     format:
       help: "Apply code formatting (Ruff)."
       cmd: "ruff format ."
@@ -507,16 +513,19 @@ _exclude:
 
 _tasks:
   - command: python bootstrap.py
+    working_directory: "{{ project_slug }}"
     when: not _copier_conf.is_update
 
-  - command: echo "Exporting documentation requirements for Read the Docs..."
-    when: not _copier_conf.is_update and doc_hosting_provider == 'Read the Docs'
-  - command: pdm run export-docs-reqs
-    when: not _copier_conf.is_update and doc_hosting_provider == 'Read the Docs'
+  # - command: echo "Exporting documentation requirements for Read the Docs..."
+  #   when: not _copier_conf.is_update and doc_hosting_provider == 'Read the Docs'
+  # - command: python -m pdm run export-docs-reqs
+  #   working_directory: "{{ project_slug }}"
+  #   when: not _copier_conf.is_update and doc_hosting_provider == 'Read the Docs'
 
   - command: echo "Removing bootstrap script..."
     when: not _copier_conf.is_update
   - command: python -c "import os; os.remove('bootstrap.py')"
+    working_directory: "{{ project_slug }}"
     when: not _copier_conf.is_update
 
   - echo "Project {{ project_name }} generated with Copier!"

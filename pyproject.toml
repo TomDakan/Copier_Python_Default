@@ -85,6 +85,7 @@ addopts = "-ra -q"
 testpaths = [
     "tests",
 ]
+markers = [ "integration: tests that require network access and external services (e.g., GitHub)" ]
 
 [tool.coverage.run]
 omit = ["tests*"]
