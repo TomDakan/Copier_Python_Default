@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Dakan"
+    given-names: "Tom"
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+title: "{{ project_name }}"
+version: {{ version }}
+date-released: {% raw %}{{% endraw %}{{ "{{" }} release_date | default("YYYY-MM-DD") {% raw %}}}{% endraw %}}
