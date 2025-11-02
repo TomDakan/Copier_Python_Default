@@ -292,3 +292,361 @@ def test_generated_project_with_security_features(
         print(e.stderr)
         print("-------------------------------------------\n")
         raise
+
+def test_with_dependabot_automerge(
+    root_path: str, tmp_path: Path, common_data: dict[str, str]
+) -> None:
+    """
+    Tests that the dependabot.yml file is correctly generated with automerge.
+    """
+    # Test with automerge enabled
+    data = {
+        **common_data,
+        "use_dependabot": True,
+        "dependabot_automerge": True,
+    }
+    destination_path = tmp_path / "dependabot_automerge_true"
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+
+    project_path = destination_path / common_data["project_slug"]
+    dependabot_file = project_path / ".github" / "dependabot.yml"
+    assert dependabot_file.is_file()
+    with open(dependabot_file, "r") as f:
+        content = f.read()
+        assert "automerge: true" in content
+
+    # Test with dependabot disabled
+    data = {
+        **common_data,
+        "use_dependabot": False,
+    }
+    destination_path = tmp_path / "dependabot_automerge_false"
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+
+    project_path = destination_path / common_data["project_slug"]
+    dependabot_file = project_path / ".github" / "dependabot.yml"
+    assert not dependabot_file.exists()
+
+def test_with_env_file(
+    root_path: str, tmp_path: Path, common_data: dict[str, str]
+) -> None:
+    """
+    Tests that the .env file is correctly generated.
+    """
+    # Test with .env file generation enabled
+    data = {
+        **common_data,
+        "generate_env": True,
+    }
+    destination_path = tmp_path / "env_file_true"
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+
+    project_path = destination_path / common_data["project_slug"]
+    env_file = project_path / ".env"
+    assert env_file.is_file()
+
+    # Test with .env file generation disabled
+    data = {
+        **common_data,
+        "generate_env": False,
+    }
+    destination_path = tmp_path / "env_file_false"
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+
+    project_path = destination_path / common_data["project_slug"]
+    env_file = project_path / ".env"
+    assert not env_file.exists()
+
+def test_with_adr_support(
+    root_path: str, tmp_path: Path, common_data: dict[str, str]
+) -> None:
+    """
+    Tests that the ADR files are correctly generated.
+    """
+    # Test with ADR support enabled
+    data = {
+        **common_data,
+        "include_adr": True,
+    }
+    destination_path = tmp_path / "adr_support_true"
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+
+    project_path = destination_path / common_data["project_slug"]
+    adr_script = project_path / "scripts" / "new_adr.py"
+    adr_template = project_path / "docs" / "adr" / "0000-template.md"
+    assert adr_script.is_file()
+    assert adr_template.is_file()
+
+    # Test with ADR support disabled
+    data = {
+        **common_data,
+        "include_adr": False,
+    }
+    destination_path = tmp_path / "adr_support_false"
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+
+    project_path = destination_path / common_data["project_slug"]
+    adr_script_path = project_path / "scripts"
+    adr_docs_path = project_path / "docs" / "adr"
+    assert not adr_script_path.exists()
+@pytest.mark.integration
+def test_with_github_project(
+    root_path: str, tmp_path: Path, common_data: dict[str, str]
+) -> None:
+    """
+    Tests that the GitHub project is created when requested.
+    """
+    # Test with GitHub project creation enabled
+    data = {
+        **common_data,
+        "initialize_git": True,
+        "push_to_github": True,
+        "create_github_project": True,
+    }
+    destination_path = tmp_path / "github_project_true"
+    
+    # Mock the subprocess.run to avoid actual gh calls
+    from unittest.mock import patch
+    with patch("subprocess.run") as mock_run:
+        # The bootstrap script will call gh, so we need to mock it
+        mock_run.return_value.stdout = "https://github.com/users/TomDakan/projects/1"
+        mock_run.return_value.returncode = 0
+        
+        run_copy(
+            root_path,
+            destination_path,
+            data=data,
+            vcs_ref="HEAD",
+            defaults=True,
+            skip_tasks=False,
+            unsafe=True,
+        )
+
+        # Check that `gh project create` was called
+        assert any(
+            "gh project create" in " ".join(call.args[0])
+            for call in mock_run.call_args_list
+        )
+
+        # Check that the ROADMAP.md file was updated
+        roadmap_file = destination_path / common_data["project_slug"] / "ROADMAP.md"
+        assert roadmap_file.is_file()
+        with open(roadmap_file, "r") as f:
+            content = f.read()
+            assert "https://github.com/users/TomDakan/projects/1" in content
+            assert "PROJECT_URL_PLACEHOLDER" not in content
+
+
+    # Test with GitHub project creation disabled
+    data = {
+        **common_data,
+        "initialize_git": True,
+        "push_to_github": True,
+        "create_github_project": False,
+    }
+    destination_path = tmp_path / "github_project_false"
+    
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value.stdout = "TomDakan"
+        mock_run.return_value.returncode = 0
+
+        run_copy(
+            root_path,
+            destination_path,
+            data=data,
+            vcs_ref="HEAD",
+            defaults=True,
+            skip_tasks=False,
+            unsafe=True,
+        )
+
+        # Check that `gh project create` was not called
+        assert not any(
+            "gh project create" in " ".join(call.args[0])
+            for call in mock_run.call_args_list
+        )
+
+        # Check that the ROADMAP.md file was not updated
+        roadmap_file = destination_path / common_data["project_slug"] / "ROADMAP.md"
+        assert roadmap_file.is_file()
+        with open(roadmap_file, "r") as f:
+            content = f.read()
+            assert "PROJECT_URL_PLACEHOLDER" in content
+
+def test_with_polish_files(
+    root_path: str, tmp_path: Path, common_data: dict[str, str]
+) -> None:
+    """
+    Tests that the repository polish files are correctly generated.
+    """
+    # Test with polish files enabled
+    data = {
+        **common_data,
+        "add_code_of_conduct": True,
+        "add_security_md": True,
+        "add_citation_cff": True,
+    }
+    destination_path = tmp_path / "polish_files_true"
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+
+    project_path = destination_path / common_data["project_slug"]
+    coc_file = project_path / "CODE_OF_CONDUCT.md"
+    security_file = project_path / "SECURITY.md"
+    citation_file = project_path / "CITATION.cff"
+    assert coc_file.is_file()
+    assert security_file.is_file()
+    assert citation_file.is_file()
+
+    # Test with polish files disabled
+    data = {
+        **common_data,
+        "add_code_of_conduct": False,
+        "add_security_md": False,
+        "add_citation_cff": False,
+    }
+    destination_path = tmp_path / "polish_files_false"
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+
+    project_path = destination_path / common_data["project_slug"]
+    coc_file = project_path / "CODE_OF_CONDUCT.md"
+    security_file = project_path / "SECURITY.md"
+    citation_file = project_path / "CITATION.cff"
+    assert not coc_file.exists()
+    assert not security_file.exists()
+    assert not citation_file.exists()
+
+@pytest.mark.integration
+def test_with_github_project(
+    root_path: str, tmp_path: Path, common_data: dict[str, str]
+) -> None:
+    """
+    Tests that the GitHub project is created when requested.
+    """
+    # Test with GitHub project creation enabled
+    data = {
+        **common_data,
+        "initialize_git": True,
+        "push_to_github": True,
+        "create_github_project": True,
+    }
+    destination_path = tmp_path / "github_project_true"
+    
+    # Mock the subprocess.run to avoid actual gh calls
+    from unittest.mock import patch
+    with patch("subprocess.run") as mock_run:
+        # The bootstrap script will call gh, so we need to mock it
+        # The first call is `gh auth status`
+        # The second call is `gh repo view`
+        # The third call is `gh repo create`
+        # The fourth call is `gh project create`
+        mock_run.return_value.stdout = "TomDakan"
+        mock_run.return_value.returncode = 0
+        
+        run_copy(
+            root_path,
+            destination_path,
+            data=data,
+            vcs_ref="HEAD",
+            defaults=True,
+            skip_tasks=False,
+            unsafe=True,
+        )
+
+        # Check that `gh project create` was called
+        assert any(
+            "gh project create" in " ".join(call.args[0])
+            for call in mock_run.call_args_list
+        )
+
+    # Test with GitHub project creation disabled
+    data = {
+        **common_data,
+        "initialize_git": True,
+        "push_to_github": True,
+        "create_github_project": False,
+    }
+    destination_path = tmp_path / "github_project_false"
+    
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value.stdout = "TomDakan"
+        mock_run.return_value.returncode = 0
+
+        run_copy(
+            root_path,
+            destination_path,
+            data=data,
+            vcs_ref="HEAD",
+            defaults=True,
+            skip_tasks=False,
+            unsafe=True,
+        )
+
+        # Check that `gh project create` was not called
+        assert not any(
+            "gh project create" in " ".join(call.args[0])
+            for call in mock_run.call_args_list
+        )
