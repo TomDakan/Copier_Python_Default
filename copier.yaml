@@ -94,6 +94,11 @@ docker_support:
   help: Include docker-compose support?
   default: false
 
+generate_env:
+  type: bool
+  help: Generate a .env file from the example?
+  default: false
+
 initialize_git:
   type: bool
   help: Should I initialize this project as a git repository?
@@ -112,6 +117,12 @@ push_to_github:
   help: Should I publish this project to github?
   default: "{{ initialize_git }}"
   when: "{{ initialize_git }}"
+
+task_tracking:
+  type: str
+  help: "Configure task tracking for this project?"
+  choices: ["TODO.md", "GitHub Projects", "None"]
+  default: "TODO.md"
 
 is_private:
   type: bool
@@ -157,6 +168,12 @@ use_dependabot:
   help: Include Dependabot configuration for automated dependency updates?
   default: true
 
+dependabot_automerge:
+  type: bool
+  help: "Should Dependabot automatically merge approved pull requests?"
+  default: false
+  when: "{{ use_dependabot }}"
+
 use_codecov:
   type: bool
   help: Include Codecov integration for test coverage reporting?
@@ -172,6 +189,22 @@ badges:
   help: Add README badges (build, coverage, docs)?
   default: false
   when: doc_hosting_provider != None
+
+# --- Repository Polish ---
+add_code_of_conduct:
+  type: bool
+  help: Add a Code of Conduct?
+  default: true
+
+add_security_md:
+  type: bool
+  help: Add a SECURITY.md file?
+  default: true
+
+add_citation_cff:
+  type: bool
+  help: Add a CITATION.cff file?
+  default: true
 
 badge_build:
   type: str
@@ -500,6 +533,7 @@ scripts:
 _subdirectory: template
 
 _exclude:
+  - "{% if task_tracking != 'TODO.md' %}{{ project_slug }}/TODO.md.jinja{% endif %}"
   - "{% if not generate_env %}{{ project_slug }}/.env.jinja{% endif %}"
 
   - "{% if not docker_support %}{{ project_slug }}/docker-compose.yml.jinja{% endif %}"
@@ -507,9 +541,21 @@ _exclude:
   - "{% if not cli %}{{ project_slug }}/src/{{ module_name }}/cli/__main__.py.jinja{% endif %}"
 
   # Conditionally exclude security tools
+  - "{% if not use_dependabot %}{{ project_slug }}/.github/dependabot.yml.jinja{% endif %}"
   - "{% if not use_semantic_release %}{{ project_slug }}/.github/workflows/release.yaml.jinja{% endif %}"
+  - "{% if doc_hosting_provider == 'None' %}{{ project_slug }}/.github/workflows/docs.yaml.jinja{% endif %}"
 
   - "{% if not task_runner == 'just' %}{{ project_slug }}/justfile{% endif %}"
+
+  - "{% if not include_adr %}{{ project_slug }}/scripts/new_adr.py{% endif %}"
+  - "{% if not include_adr %}{{ project_slug }}/scripts{% endif %}"
+  - "{% if not include_adr %}{{ project_slug }}/docs/adr{% endif %}"
+
+  - "{% if not use_docs %}{{ project_slug }}/docs{% endif %}"
+
+  - "{% if not add_code_of_conduct %}{{ project_slug }}/CODE_OF_CONDUCT.md.jinja{% endif %}"
+  - "{% if not add_security_md %}{{ project_slug }}/SECURITY.md.jinja{% endif %}"
+  - "{% if not add_citation_cff %}{{ project_slug }}/CITATION.cff.jinja{% endif %}"
 
 _tasks:
   - command: python bootstrap.py

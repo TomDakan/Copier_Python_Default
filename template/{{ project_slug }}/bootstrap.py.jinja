@@ -16,6 +16,7 @@ RUN_QA_CHECKS = "{{ run_qa_checks }}" == "True"
 PRECOMMIT_INSTALL = "{{ precommit_install }}" == "True"
 INITIALIZE_GIT = "{{ initialize_git }}" == "True"
 PUSH_TO_GITHUB = "{{ push_to_github }}" == "True"
+TASK_TRACKING = os.getenv("_TASK_TRACKING", "{{ task_tracking }}")
 REPO_NAME = f"{GITHUB_USER}/{PROJECT_NAME}"
 
 def run_command(command: List[str], check: bool = True) -> subprocess.CompletedProcess:
@@ -99,6 +100,24 @@ def create_github_repo():
     # print("--- Setting default branch protection ---")
     # run_command(["gh", "repo", "edit", REPO_NAME, "--default-branch=main"])
 
+def create_github_project_board():
+    """Creates a GitHub project board for the repository."""
+    print(f"--- Creating GitHub project for {REPO_NAME} ---")
+    result = run_command([
+        "gh", "project", "create", f"{PROJECT_NAME} Roadmap",
+        "--owner", GITHUB_USER,
+    ])
+    project_url = result.stdout.strip()
+    print(f"Successfully created GitHub project: {project_url}")
+
+    # Update the ROADMAP.md file
+    with open("ROADMAP.md", "r") as f:
+        content = f.read()
+    content = content.replace("PROJECT_URL_PLACEHOLDER", project_url)
+    with open("ROADMAP.md", "w") as f:
+        f.write(content)
+    print("Updated ROADMAP.md with project URL.")
+
 def check_gh_auth() -> bool:
     """Checks if the user is logged into the correct GitHub account."""
     result = run_command(["gh", "auth", "status"], check=False)
@@ -155,6 +174,9 @@ def main():
             print("\n--- Creating and pushing to GitHub ---")
 
             create_github_repo()
+
+            if TASK_TRACKING == "GitHub Projects":
+                create_github_project_board()
 
     print("\n--- Bootstrap finished successfully! ---")
 
