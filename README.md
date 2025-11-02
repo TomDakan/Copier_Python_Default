@@ -13,10 +13,11 @@ It was inspired by my own desire for easily reproducible projects, and has a num
 
 ## Project Toolchain
 
-The project created by this template is pre-configured to use a modern Python toolchain. To develop within the new project, you (and any contributors) will need:
+The project created by this template is pre-configured to use a modern Python toolchain reflecting best practices as of late 2025. To develop within the new project, you (and any contributors) will need:
 
-    * mise: For managing Python versions and project-specific virtual environments automatically.
-    * PDM: The primary project and dependency manager.
+    * mise: For managing Python versions and project-specific virtual environments automatically. After cloning the project, you should run `mise install` to set up the environment.
+    * just: A command runner for project-specific tasks. (Optional)
+    * PDM: The primary project and dependency manager. Can also be used as a task runner if you don't want to use just.
     * uv: (Recommended) PDM uses uv as a high-speed backend for installing and locking, if available.
 
 
