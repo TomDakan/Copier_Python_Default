@@ -548,7 +548,6 @@ _exclude:
   - "{% if not task_runner == 'just' %}{{ project_slug }}/justfile{% endif %}"
 
   - "{% if not include_adr %}{{ project_slug }}/scripts/new_adr.py{% endif %}"
-  - "{% if not include_adr %}{{ project_slug }}/scripts{% endif %}"
   - "{% if not include_adr %}{{ project_slug }}/docs/adr{% endif %}"
 
   - "{% if not use_docs %}{{ project_slug }}/docs{% endif %}"
