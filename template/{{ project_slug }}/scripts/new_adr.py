@@ -7,7 +7,7 @@ from datetime import date
 from pathlib import Path
 
 # --- Configuration ---
-# TODO: ADR_DIR should probably be configurable in the future
+# [ ]: ADR_DIR should probably be configurable in the future
 ADR_DIR = Path("docs/adr")
 TEMPLATE_FILE = ADR_DIR / "0000-template.md"
 TITLE_PLACEHOLDER = "ADR_TITLE_PLACEHOLDER"
