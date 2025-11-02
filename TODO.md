@@ -57,3 +57,6 @@
 - [ ] **Run Full Test Suite:** Run `test_project_structure.py` and the updated `test_generated_project.py`.
 
 - [ ] document use of mise install in mise.toml in CONTRIBUTING.md for template project.
+
+## 📖 Step 9: Documentation Review
+- [ ] **Full documentation review:** Review all project documentation and update as necessary to reflect the v1 feature set.
