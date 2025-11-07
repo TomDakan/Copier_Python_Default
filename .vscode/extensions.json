@@ -1,6 +1,7 @@
 {
     "recommendations": [
         "ms-python.vscode-pylance",
+        "ms-python.mypy-type-checker",
         "ms-python.python",
         "ms-python.debugpy",
         "ms-python.vscode-python-envs",
@@ -11,10 +12,13 @@
         "ms-azuretools.vscode-containers",
         "ms-vscode-remote.remote-containers",
         "ms-azuretools.vscode-docker",
-        "editorconfig.editorconfi",
+        "editorconfig.editorconfig",
         "mhutchie.git-graph",
         "github.vscode-github-actions",
         "codezombiech.gitignore",
-        "ms-vscode.powershell"    
+        "ms-vscode.powershell",
+        "charliermarsh.ruff",
+        "monosans.djlint",
+        "samuelcolvin.jinjahtml"  
     ]
 }
