@@ -188,7 +188,6 @@ badges:
   type: bool
   help: Add README badges (build, coverage, docs)?
   default: false
-  when: doc_hosting_provider != None
 
 # --- Repository Polish ---
 add_code_of_conduct:
@@ -263,7 +262,7 @@ project_tools:
       {%   set tools = tools + tool_typer + tool_rich %}
     {% endif %}
 
-    {{ tools }}
+    {{ tools | to_json }}
   when: false
 
 # --- Development & Code Quality Tools ---
@@ -340,7 +339,7 @@ dev_tools:
     {% if use_semantic_release %}
       {% set base_tools = base_tools + tool_semantic_release %}
     {% endif %}
-    {{ base_tools }}
+    {{ base_tools | to_json }}
   when: false
 
 # --- Documentation Tools ---
@@ -365,7 +364,7 @@ doc_hosting_provider:
   default: "None"
   when: use_docs
 
-# tool defintions
+# tool definitions
 tool_mkdocs:
   default:
     - name: "mkdocs"
@@ -392,7 +391,7 @@ doc_tools:
     {% if use_docs and use_mkdocstrings %}
       {% set base_tools = base_tools + tool_mkdocstrings %}
     {% endif %}
-    {{ base_tools }}
+    {{ base_tools | to_json }}
   when: false
 
 # --- Pytest Markers ---
@@ -490,35 +489,36 @@ include_adr:
 # --- Public Variable for Jinja Templates ---
 scripts:
   when: false 
-  default: |
-    {# 1. Start with the base scripts dictionary. This now works! #}
+  default: >-
     {% set final_scripts = {} %}
     {% set _ = final_scripts.update(scripts_base) %}
     
-    {# 2. Conditionally add optional scripts. This also works. #}
     {% if use_safety %}
       {% set _ = final_scripts.update(script_safety) %}
     {% endif %}
+
     {% if use_bandit %}
       {% set _ = final_scripts.update(script_bandit) %}
     {% endif %}
+
     {% if doc_hosting_provider == 'Read the Docs'%}
       {% set _ = final_scripts.update(script_docs_rtd) %}
     {% endif %}
+
     {% if include_adr %}
       {% set _ = final_scripts.update(script_adr) %}
     {% endif %}
     
-    {# 3. Build the composite 'qa' task list dynamically #}
     {% set qa_tasks = ['format-check', 'lint', 'type-check', 'test'] %}
+
     {% if use_safety %}
       {% set qa_tasks = qa_tasks + ['safety-check'] %}
     {% endif %}
+
     {% if use_bandit %}
       {% set qa_tasks = qa_tasks + ['bandit-check'] %}
     {% endif %}
     
-    {# 4. Create and add the final 'qa' script to the dictionary #}
     {% set qa_script = {
         'qa': {
           'help': 'Run the full quality assurance suite.',
@@ -527,34 +527,37 @@ scripts:
       } %}
     {% set _ = final_scripts.update(qa_script) %}
     
-    {# 5. Output the complete, filtered dictionary #}
-    {{ final_scripts | to_yaml }}
+    {{ final_scripts | to_json }}
 
 _subdirectory: template
 
 _exclude:
-  - "{% if task_tracking != 'TODO.md' %}{{ project_slug }}/TODO.md.jinja{% endif %}"
-  - "{% if not generate_env %}{{ project_slug }}/.env.jinja{% endif %}"
+  - "{% if task_tracking != 'TODO.md' %}{{ project_slug }}/TODO.md{% endif %}"
+  - "{% if not generate_env %}{{ project_slug }}/.env{% endif %}"
 
-  - "{% if not docker_support %}{{ project_slug }}/docker-compose.yml.jinja{% endif %}"
+  - "{% if not docker_support %}{{ project_slug }}/docker-compose.yml{% endif %}"
 
-  - "{% if not cli %}{{ project_slug }}/src/{{ module_name }}/cli/__main__.py.jinja{% endif %}"
+  - "{% if not cli %}{{ project_slug }}/src/{{ module_name }}/cli/__main__.py{% endif %}"
 
   # Conditionally exclude security tools
-  - "{% if not use_dependabot %}{{ project_slug }}/.github/dependabot.yml.jinja{% endif %}"
-  - "{% if not use_semantic_release %}{{ project_slug }}/.github/workflows/release.yaml.jinja{% endif %}"
-  - "{% if doc_hosting_provider == 'None' %}{{ project_slug }}/.github/workflows/docs.yaml.jinja{% endif %}"
+  - "{% if not use_dependabot %}{{ project_slug }}/.github/dependabot.yml{% endif %}"
+  - "{% if not use_semantic_release %}{{ project_slug }}/.github/workflows/release.yaml{% endif %}"
+  - "{% if doc_hosting_provider == 'None' %}{{ project_slug }}/.github/workflows/docs.yaml{% endif %}"
 
   - "{% if not task_runner == 'just' %}{{ project_slug }}/justfile{% endif %}"
 
   - "{% if not include_adr %}{{ project_slug }}/scripts/new_adr.py{% endif %}"
   - "{% if not include_adr %}{{ project_slug }}/docs/adr{% endif %}"
 
-  - "{% if not use_docs %}{{ project_slug }}/docs{% endif %}"
+  - "{% if not precommit_install %}{{ project_slug }}/.pre-commit-config.yaml{% endif %}"
 
-  - "{% if not add_code_of_conduct %}{{ project_slug }}/CODE_OF_CONDUCT.md.jinja{% endif %}"
-  - "{% if not add_security_md %}{{ project_slug }}/SECURITY.md.jinja{% endif %}"
-  - "{% if not add_citation_cff %}{{ project_slug }}/CITATION.cff.jinja{% endif %}"
+  - "{% if not use_docs %}{{ project_slug }}/docs{% endif %}"
+  - "{% if not use_docs %}{{ project_slug }}/mkdocs.yml{% endif %}"
+  - "{% if not use_docs %}{{ project_slug }}/.github/workflows/docs.yaml{% endif %}"
+
+  - "{% if not add_code_of_conduct %}{{ project_slug }}/CODE_OF_CONDUCT.md{% endif %}"
+  - "{% if not add_security_md %}{{ project_slug }}/SECURITY.md{% endif %}"
+  - "{% if not add_citation_cff %}{{ project_slug }}/CITATION.cff{% endif %}"
 
 _tasks:
   - command: python bootstrap.py
