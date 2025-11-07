@@ -103,7 +103,7 @@ distribution = false
 generate = { cmd = "copier copy . ./test-output --force --trust --defaults -a run_install=false", help = "Generate a test project" }
 
 # Run the QA suite inside the generated project
-test-generated = { shell = "cd ./test-output/my_new_project && pdm install --dev && pdm run qa", help = "Install and run QA suite in the generated project" }
+test-generated = { shell = "cd ./test-output/my-new-project && pdm install --dev && pdm run qa", help = "Install and run QA suite in the generated project" }
 
 # Clean up the generated test directory
 clean = { cmd = "rm -rf ./test-output", help = "Remove the generated test project" }
@@ -111,6 +111,8 @@ clean = { cmd = "rm -rf ./test-output", help = "Remove the generated test projec
 test-template = { composite = ["pdm install --dev", "generate", "test-generated", "clean"] }
 
 safety-scan = { cmd = "pdm run safety scan", help = "Run a dependency vulnerability scan with safety" }
+
+post_install = "python scripts/install_rich_hook.py"
 
 [dependency-groups]
 dev = [
@@ -120,11 +122,13 @@ dev = [
     "copier>=9.10.3",
     "pytest-cov>=7.0.0",
     "jinja2-copier-extension>=0.1.0",
-    "pdm>=2.26.0",
+    "pdm",
     "safety>=3.6.2",
     "pip-audit>=2.9.0",
-    "python-semantic-release>=10.4.1",
-    "ruff>=0.14.2",
+    "ruff",
+    "rich>=14.2.0",
+    "pytest-rich>=0.2.0",
+    "djlint>=1.36.4",
 ]
 
 [tool.semantic_release]
@@ -166,4 +170,3 @@ name = "origin"
 type = "github"
 ignore_token_for_push = false
 insecure = false
-
