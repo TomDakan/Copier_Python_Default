@@ -70,7 +70,7 @@ def create_adr_file(adr_num: int, title: str, slug: str) -> Path | None:
         return None
 
 
-def main():
+def main() -> None:
     """Parses arguments and orchestrates ADR creation."""
     # Get the title from command line arguments (joined if multiple words)
     title = " ".join(sys.argv[1:])

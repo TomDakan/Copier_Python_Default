@@ -14,7 +14,8 @@ except ImportError:
 
 def main() -> None:
     """
-    Adds sitecustomize.py to the site-packages directory to automate using Rich for terminal formatting.
+    Adds sitecustomize.py to the site-packages directory to automate using Rich for
+    terminal formatting.
     """
     # Find the site-packages directory
     try:
@@ -22,9 +23,9 @@ def main() -> None:
         site_packages_path = site.getsitepackages()[0]
     except AttributeError:
         # Fallback for some venv configurations
-        from distutils.sysconfig import get_python_lib
+        import sysconfig
 
-        site_packages_path = get_python_lib()
+        site_packages_path = sysconfig.get_path("purelib")
 
     if not site_packages_path:
         print("Could not find site-packages directory.", file=sys.stderr)

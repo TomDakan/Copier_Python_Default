@@ -4,6 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 from subprocess import CalledProcessError
+from typing import Any
 
 try:
     from commitizen.cz.utils import get_backup_file_path
@@ -25,7 +26,7 @@ def main() -> int:
     tty_path = "CON" if sys.platform == "win32" else "/dev/tty"
 
     # Prepare arguments for the subprocess
-    subprocess_args = {
+    subprocess_args: dict[str, Any] = {
         "stdin": None,
         "check": True,
     }
@@ -35,8 +36,8 @@ def main() -> int:
         subprocess_args["creationflags"] = subprocess.CREATE_NEW_CONSOLE
     else:
         # On other systems, we connect to the existing terminal
-        tty = open(tty_path)
-        subprocess_args["stdin"] = tty
+        with open(tty_path) as tty:
+            subprocess_args["stdin"] = tty
 
     try:
         subprocess.run(
@@ -59,10 +60,6 @@ def main() -> int:
     except Exception as e:
         print(f"An unexpected error occurred: {e}", file=sys.stderr)
         return 1
-    finally:
-        if "tty" in locals() and not tty.closed:
-            tty.close()
-
     return 0
 
 
