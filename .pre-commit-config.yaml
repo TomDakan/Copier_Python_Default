@@ -17,7 +17,7 @@ repos:
     rev: v1.11.0
     hooks:
       - id: mypy
-        additional_dependencies: ["types-requests"] # Add any types your project needs
+        additional_dependencies: ["types-requests"]  # Add any types your project needs
       - id: commitizen-prepare-commit-msg
         name: commitizen prepare-commit-msg
         # The script to execute.
