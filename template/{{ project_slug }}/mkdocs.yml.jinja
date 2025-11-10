@@ -1,16 +1,13 @@
 site_name: {{ project_name }}
-
 theme:
-  name: material
-
+name: material
 plugins:
-  - search
-  - mkdocstrings:
-      handlers:
-        python:
-          options:
-            show_root_heading: yes
-
+- search
+- mkdocstrings:
+handlers:
+python:
+options:
+show_root_heading: yes
 nav:
-  - Home: index.md
-  - API Reference: api.md
+- Home: index.md
+- API Reference: api.md
