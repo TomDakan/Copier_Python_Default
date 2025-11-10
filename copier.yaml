@@ -39,9 +39,10 @@ project_slug:
   help: "The name for the project directory (e.g., 'my-new-project'). This must be different from the module_name."
   # The default value is computed from project_name. The user can accept or edit it.
   default: "{{ project_name | lower | replace(' ', '-') }}"
-  validator: |
+  validator: >
     {% if not (project_slug | regex_search('^[a-z][a-z0-9-]+$')) %}
-      ''{{ project_slug }}' is not a valid project slug. It must start with a lowercase letter, and contain only lowercase letters, numbers, and hyphens.
+      ''{{ project_slug }}' is not a valid project slug. It must start with a lowercase letter, and contain only
+       lowercase letters, numbers, and hyphens.
     {% endif %}
 
 module_name:
@@ -56,7 +57,8 @@ module_name:
     module_name must start with a letter, followed one or more letters, digits or underscores (all lowercase).
     {% endif %}
     {% if module_name == project_slug %}
-    module_name cannot be the same as project_slug (e.g., 'my-project' vs 'my_project'). This can cause Python import conflicts.
+    module_name cannot be the same as project_slug (e.g., 'my-project' vs 'my_project').
+    This can cause Python import conflicts.
     {% endif %}
 
 project_summary:
@@ -127,7 +129,7 @@ task_tracking:
 is_private:
   type: bool
   help: Will this be a private repository?
-  default: False
+  default: false
   when: "{{ push_to_github }}"
 
 github_username:
@@ -177,7 +179,7 @@ dependabot_automerge:
 use_codecov:
   type: bool
   help: Include Codecov integration for test coverage reporting?
-  default: false  
+  default: false
 
 use_detect_secrets:
   type: bool
@@ -488,11 +490,11 @@ include_adr:
 
 # --- Public Variable for Jinja Templates ---
 scripts:
-  when: false 
+  when: false
   default: >-
     {% set final_scripts = {} %}
     {% set _ = final_scripts.update(scripts_base) %}
-    
+
     {% if use_safety %}
       {% set _ = final_scripts.update(script_safety) %}
     {% endif %}
@@ -508,7 +510,7 @@ scripts:
     {% if include_adr %}
       {% set _ = final_scripts.update(script_adr) %}
     {% endif %}
-    
+
     {% set qa_tasks = ['format-check', 'lint', 'type-check', 'test'] %}
 
     {% if use_safety %}
@@ -518,7 +520,7 @@ scripts:
     {% if use_bandit %}
       {% set qa_tasks = qa_tasks + ['bandit-check'] %}
     {% endif %}
-    
+
     {% set qa_script = {
         'qa': {
           'help': 'Run the full quality assurance suite.',
@@ -526,7 +528,7 @@ scripts:
         }
       } %}
     {% set _ = final_scripts.update(qa_script) %}
-    
+
     {{ final_scripts | to_json }}
 
 _subdirectory: template

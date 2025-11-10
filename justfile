@@ -1,7 +1,7 @@
 # === Settings ===
 # Use bash (or pwsh on Windows)
 # set shell := ["bash", "-c"]
-cd set shell := ["pwsh", "-c"]
+set shell := ["pwsh", "-c"]
 # set shell := ["fish", "-c"]
 
 # === Default Task ===
@@ -10,6 +10,7 @@ default:
     @just --list
 
 # === Main Tasks ===
+qa: lint type-check
 
 # Lint all template files (Jinja, YAML) and Python test code
 lint: lint-jinja lint-yaml lint-py
@@ -17,10 +18,14 @@ lint: lint-jinja lint-yaml lint-py
 # Format all files
 format: format-jinja format-py
 
+type-check:
+    @echo "Checking types..."
+    @pdm run mypy .
+
 # Run the template's pytest suite
-test:
+test +args:
     @echo "Running template generation tests..."
-    @pdm run pytest tests/
+    @pdm run pytest tests/ {{args}}
 
 # Do a quick test-generation into a temp folder
 generate:
@@ -35,7 +40,7 @@ clean:
 # === Sub-Tasks ===
 lint-jinja:
     @echo "Checking Jinja templates..."
-    @pdm run djlint --check .
+    @pdm run djlint --check --extension jinja template
 
 lint-yaml:
     @echo "Checking YAML files..."
@@ -47,8 +52,12 @@ lint-py:
 
 format-jinja:
     @echo "Formatting Jinja templates..."
-    @pdm run djlint --reformat .
+    @pdm run djlint --reformat --extension jinja template
 
 format-py:
     @echo "Formatting Python test code..."
     @pdm run ruff format tests/
+
+lf:
+    @echo "Running pytest --last-failed)"
+    @pdm run pytest --last-failed
