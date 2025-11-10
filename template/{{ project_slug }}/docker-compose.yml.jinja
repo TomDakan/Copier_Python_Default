@@ -1,12 +1,41 @@
+version: '3.8'
 services:
-  app:
-    build: .
-    # Use the CLI command if enabled, otherwise keep the container alive
-    command: >
-      {% if cli %}python -m {{ project_slug }}{% else %}python -c "import time; time.sleep(float('inf'))"{% endif %}
-    volumes:
-      - .:/app
-    environment:
-      - PYTHONUNBUFFERED=1
-    ports:
-      - "8000:8000"
+# The Python application service
+app:
+build:
+context: .
+# Explicitly build the 'development' stage from the Dockerfile
+target: development
+volumes:
+# Mount your local source code into the container
+# This enables live-reloading when you save a file
+- ./src:/app/src
+- ./tests:/app/tests
+ports:
+# Map your host port 8000 to the container port 8000
+- "8000:8000"
+command:
+# This keep-alive command is used because no 'dev' or 'start'
+# script is defined in your copier.yml 'scripts_base'.
+# It keeps the container running so you can use:
+# 'docker compose exec app bash'
+tail -f /dev/null
+environment:
+- PYTHONUNBUFFERED=1
+#   - DATABASE_URL=postgresql://user:password@db:5432/myapp_dev
+# depends_on:
+#   - db # Uncomment if you add a database service
+# Example PostgreSQL database service
+# db:
+#   image: postgres:16-alpine
+#   volumes:
+#     - postgres_data:/var/lib/postgresql/data/
+#   ports:
+#     - "5432:5432" # Expose db port to host (optional)
+#   environment:
+#     - POSTGRES_USER=user
+#     - POSTGRES_PASSWORD=password
+#     - POSTGRES_DB=myapp_dev
+# Defines the named volume for persistent database storage
+# volumes:
+#   postgres_data:
