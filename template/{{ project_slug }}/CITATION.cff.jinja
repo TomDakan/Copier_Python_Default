@@ -6,4 +6,4 @@ authors:
     orcid: "https://orcid.org/0000-0000-0000-0000"
 title: "{{ project_name }}"
 version: {{ version }}
-date-released: {% raw %}{{% endraw %}{{ "{{" }} release_date | default("YYYY-MM-DD") {% raw %}}}{% endraw %}}
+date-released: {% raw %}{{ release_date | default("YYYY-MM-DD") }}{% endraw %}
