@@ -23,9 +23,15 @@ changelog_file = "CHANGELOG.md"
 python_version = "3.13"
 mypy_path = "src"
 strict = true
+exclude = [
+    "template/{{ project_slug }}/tests",
+    "template/{{ project_slug }}/prepare-commit-msg.py",
+    ".venv",
+    "venv",
+]
 
-# Additional useful strictness checks
 warn_unused_configs = true
+
 warn_redundant_casts = true
 warn_unreachable = true
 
@@ -95,6 +101,8 @@ omit = ["tests*"]
 fail_under = 90
 show_missing = true
 
+
+
 [tool.pdm]
 distribution = false
 
@@ -129,7 +137,23 @@ dev = [
     "rich>=14.2.0",
     "pytest-rich>=0.2.0",
     "djlint>=1.36.4",
+    "yamllint>=1.37.1",
+    "mypy>=1.18.2",
 ]
+
+[tool.djlint]
+# Use the jinja profile
+profile = "jinja"
+
+# Set indentation to 4 spaces
+indent_size = 4
+
+# Tidy whitespace
+blank_line_after_tag = "load,extends"
+blank_line_before_tag = "block,if"
+close_bracket = "new_line"
+close_variable = "new_line"
+include = '\.jinja$'
 
 [tool.semantic_release]
 # Explicitly define the workflow: only tag and create a GitHub release.
