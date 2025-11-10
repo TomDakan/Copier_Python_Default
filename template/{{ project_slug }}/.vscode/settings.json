@@ -1,0 +1,26 @@
+{
+  // --- Python General Settings ---
+  // Use basic mode (MyPy will override this if installed)
+  "python.analysis.typeCheckingMode": "off",
+
+  // --- Pytest Configuration ---
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": [
+    "tests"
+  ],
+
+  // --- Formatting & Linting (Ruff + MyPy) ---
+  "[python]": {
+    // Set Ruff as the default formatter
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    
+    // Enable format on save
+    "editor.formatOnSave": true,
+    
+    // Configure 'Fix All' to run on save (for Ruff)
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit"
+    }
+  }
+}
