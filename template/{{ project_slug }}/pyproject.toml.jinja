@@ -3,200 +3,190 @@ name = "{{ project_slug }}"
 version = "{{ version }}"
 description = "{{ description }}"
 authors = [
-    { name = "{{ author_name }}", email = "{{ author_email }}" },
+{ name = "{{ author_name }}", email = "{{ author_email }}" },
 ]
 maintainers = [
-    { name = "{{ author_name }}", email = "{{ author_email }}" },
+{ name = "{{ author_name }}", email = "{{ author_email }}" },
 ]
 requires-python = ">={{ python_version }}"
 readme = "README.md"
-license = { text = "{% if license == 'Proprietary' %}Proprietary{% else %}{{ license }}{% endif %}" }
+license = { text = """
+{% if license == 'Proprietary' %}
+    Proprietary
+{% else %}
+    {{ license }}
+{% endif %}
+""" }
 keywords = ["{{ project_name }}"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
-    "Operating System :: OS Independent",
+"Development Status :: 3 - Alpha",
+"Intended Audience :: Developers",
+"Programming Language :: Python :: 3",
+"Programming Language :: Python :: 3.13",
+"Programming Language :: Python :: 3.14",
+"Operating System :: OS Independent",
 ]
 dependencies = [
-{%- for tool in project_tools | from_yaml %}
-    "{{ tool.name }}",
-{%- endfor %}
-]
+{%- for tool in project_tools | from_json %}"{{ tool.name }}",{%- endfor %}
+    ]
+    # Optional dependencies for package CONSUMERS.
+    [project.optional-dependencies]
+    docs = [
+    {%- for tool in doc_tools | from_json %}"{{ tool.name }}",{%- endfor %}
+        ]
 
-# Optional dependencies for package CONSUMERS.
-[project.optional-dependencies]
-docs = [
-{%- for tool in doc_tools | from_yaml %}
-    "{{ tool.name }}",
-{%- endfor %}
-]
+        {% if cli %}
+            [project.scripts]
+            "{{ project_slug }}" = "{{ module_name }}.cli.__main__:app"
+        {% endif -%}
 
-{% if cli %}
-[project.scripts]
-"{{ project_slug }}" = "{{ module_name }}.cli.__main__:app"
-{% endif -%}
+        {% if repository_url %}
+            [project.urls]
+            Homepage = "{{ repository_url }}"
+            Repository = "{{ repository_url }}"
+            "Bug Tracker" = "{{ repository_url }}/issues"
+        {% endif -%}
+        [build-system]
+        requires = ["pdm-backend"]
+        build-backend = "pdm.backend"
+        [tool.pdm]
+        python.use_venv = true
+        python.venv_in_project = true
+        [tool.pdm.build]
+        # The package name (valid Python identifier, no hyphens).
+        packages = [{include = "{{ module_name }}", from = "src"}]
+        # Dependencies for project DEVELOPERS, managed by PDM.
+        [tool.pdm.dev-dependencies]
+        dev = [
+        {%- for tool in dev_tools | from_json %}"{{ tool.name }}",{%- endfor %}
+            ]
+            docs = [
+            {%- for tool in doc_tools | from_json %}"{{ tool.name }}",{%- endfor %}
+                ]
 
-{% if repository_url %}
-[project.urls]
-Homepage = "{{ repository_url }}"
-Repository = "{{ repository_url }}"
-"Bug Tracker" = "{{ repository_url }}/issues"
-{% endif -%}
+                {% if task_runner == 'pdm' %}
+                    [tool.pdm.scripts]
+                    {% for name, details in (scripts | from_json ).items() %}
 
-[build-system]
-requires = ["pdm-backend"]
-build-backend = "pdm.backend"
+                        {% if details.composite is defined %}
+                            {{ name }} = { help = "{{ details.help }}", composite = {{ details.composite | tojson }} }
+                        {% elif details.cmd is defined %}
+                            {{ name }} = { help = "{{ details.help }}", cmd = "{{ details.cmd }}" }
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                [tool.pytest.ini_options]
+                minversion = "6.0"
+                addopts = "-ra -q --cov={{ module_name }} --cov-report=term-missing"
+                testpaths = [
+                "tests",
+                ]
+                pythonpath = [
+                "src",
+                ]
+                markers = [
+                {% for marker_name in pytest_markers %}
+                    "{{ pytest_marker_definitions[marker_name].name }}`: {{ pytest_marker_definitions[marker_name].desc }}",
+                {% endfor %}
+                ]
+                env = [ "PDM_IGNORE_ACTIVE_VENV=1"]
+                [tool.mypy]
+                python_version = {{ python_version }}
+                mypy_path = "src"
+                strict = true
+                # Additional useful strictness checks
+                warn_unused_configs = true
+                warn_redundant_casts = true
+                warn_unreachable = true
+                # Show file/line numbers for errors
+                show_error_codes = true
+                pretty = true
+                # Relax rules for tests, which are often harder to type perfectly
+                [[tool.mypy.overrides]]
+                module = "tests.*"
+                disallow_untyped_defs = false
+                disallow_incomplete_defs = false
+                [tool.ruff]
+                line-length = {{ line_length }}
+                target-version = "py{{ python_version.replace('.', '') }}"
+                src = ["src"]
+                exclude = [
+                ".venv",
+                "venv",
+                ".git",
+                "__pycache__",
+                "build",
+                "dist",
+                "bootstrap.py",
+                ]
+                [tool.ruff.lint]
+                select = [
+                "A", # strong, modern ruleset.
+                "E","F","W", # Standard flake8
+                "I", # isort (import sorting)
+                "UP", # pyupgrade (modernize syntax)
+                "B", # flake8-bugbear (common bugs)
+                "A", # flake8-builtins (prevents shadowing)
+                "C90", # mccabe (complexity)
+                "SIM", # flake8-simplify (refactoring)
+                "PERF", # perflint (performance)
+                "RUF", # Ruff-specific rules
+                ]
+                [tool.ruff.lint.per-file-ignores]
+                # Relax rules for tests, which commonly use 'assert'
+                "tests/*" = [
+                "B018", # "useless-expression" - common in tests
+                "S101", # "assert" - tests use assert
+                ]
+                [tool.ruff.format]
+                quote-style = "double"
+                docstring-code-format = true
+                # Note: cz bump is no longer the primary release mechanism if semantic-release is used
+                [tool.commitizen]
+                name = "cz_conventional_commits"
+                tag_format = "$version"
+                version_scheme = "semver2"
+                version_provider = "pep621"
+                update_changelog_on_bump = true
+                major_version_zero = true
+                changelog_file = "CHANGELOG.md"
+                bump_message = "chore(release): bump version to $new_version [skip ci]"
 
-[tool.pdm]
-python.use_venv = true
-python.venv_in_project = true
+                {% if use_semantic_release %}
+                    [tool.semantic_release]
+                    # Configure python-semantic-release
+                    version_toml = ["pyproject.toml:project.version"]
+                    branch = "main" # Or your primary branch name
+                    changelog_file = "CHANGELOG.md"
+                    build_command = "pip install pdm && pdm build"
+                    dist_path = "dist/" # Where the built package is found
+                    upload_to_pypi = true # Set to false if you don't want CI to publish
+                    # Optional: If your repo isn't public on GitHub, you might need configuration
+                    # for commit author, etc. See semantic-release docs.
+                {% endif -%}
 
-[tool.pdm.build]
-# The package name (valid Python identifier, no hyphens).
-packages = [{include = "{{ module_name }}", from = "src"}]
+                {% if use_bandit %}
+                    [tool.bandit]
+                    targets = ["src"]
+                    exclude_dirs = ["tests", ".venv", ".tox", ".pytest_cache", "build", "dist"]
+                    # Report issues of MEDIUM severity or higher
+                    level = "MEDIUM"
+                    # Report issues of MEDIUM confidence or higher
+                    confidence = "MEDIUM"
+                {% endif -%}
 
-# Dependencies for project DEVELOPERS, managed by PDM.
-[tool.pdm.dev-dependencies]
-dev = [
-{%- for tool in dev_tools | from_yaml %}
-    "{{ tool.name }}",
-{%- endfor %}
-]
-docs = [
-{%- for tool in doc_tools | from_yaml %}
-    "{{ tool.name }}",
-{%- endfor %}
-]
-
-{% if task_runner == 'pdm' %}
-[tool.pdm.scripts]
-{% for name, details in (scripts | from_yaml).items() %}
-{%   if details.composite is defined %}
-{{ name }} = { help = "{{ details.help }}", composite = {{ details.composite | tojson }} }
-{%   elif details.cmd is defined %}
-{{ name }} = { help = "{{ details.help }}", cmd = "{{ details.cmd }}" }
-{%   endif %}
-{% endfor %}
-{% endif %}
-
-[tool.pytest.ini_options]
-minversion = "6.0"
-addopts = "-ra -q --cov={{ module_name }} --cov-report=term-missing"
-testpaths = [
-    "tests",
-]
-pythonpath = [
-    "src",
-]
-markers = [
-    {% for marker_name in pytest_markers | from_yaml %}
-    "{{ pytest_marker_definitions[marker_name].name }}`: {{ pytest_marker_definitions[marker_name].desc }}",
-    {% endfor %}
-]
-
-[tool.mypy]
-python_version = {{ python_version }}
-mypy_path = "src"
-strict = true
-
-# Additional useful strictness checks
-warn_unused_configs = true
-warn_redundant_casts = true
-warn_unreachable = true
-
-# Show file/line numbers for errors
-show_error_codes = true
-pretty = true
-
-# Relax rules for tests, which are often harder to type perfectly
-[[tool.mypy.overrides]]
-module = "tests.*"
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
-
-[tool.ruff]
-line-length = {{ line_length }}
-target-version = "py{{ python_version.replace('.', '') }}"
-src = ["src"]
-exclude = [
-    ".venv",
-    "venv",
-    ".git",
-    "__pycache__",
-    "build",
-    "dist",
-    "boostrap.py",
-]
-
-[tool.ruff.lint]
-select = [
-    "A", # strong, modern ruleset.
-    "E","F","W", # Standard flake8
-    "I", # isort (import sorting)
-    "UP", # pyupgrade (modernize syntax)
-    "B", # flake8-bugbear (common bugs)
-    "A", # flake8-builtins (prevents shadowing)
-    "C90", # mccabe (complexity)
-    "SIM", # flake8-simplify (refactoring)
-    "PERF", # perflint (performance)
-    "RUF", # Ruff-specific rules
-]
-
-[tool.ruff.lint.per-file-ignores]
-# Relax rules for tests, which commonly use 'assert'
-"tests/*" = [
-    "B018", # "useless-expression" - common in tests
-    "S101", # "assert" - tests use assert
-]
-
-[tool.ruff.format]
-quote-style = "double"
-docstring-code-format = true
-
-# Note: cz bump is no longer the primary release mechanism if semantic-release is used
-[tool.commitizen]
-name = "cz_conventional_commits"
-tag_format = "$version"
-version_scheme = "semver2"
-version_provider = "pep621"
-update_changelog_on_bump = true
-major_version_zero = true
-changelog_file = "CHANGELOG.md"
-bump_message = "chore(release): bump version to $new_version [skip ci]"
-
-{% if use_semantic_release %}
-[tool.semantic_release]
-# Configure python-semantic-release
-version_toml = ["pyproject.toml:project.version"]
-branch = "main" # Or your primary branch name
-changelog_file = "CHANGELOG.md"
-build_command = "pip install pdm && pdm build"
-dist_path = "dist/" # Where the built package is found
-upload_to_pypi = true # Set to false if you don't want CI to publish
-# Optional: If your repo isn't public on GitHub, you might need configuration
-# for commit author, etc. See semantic-release docs.
-{% endif -%}
-
-{% if use_bandit %}
-[tool.bandit]
-targets = ["src"]
-exclude_dirs = ["tests", ".venv", ".tox", ".pytest_cache", "build", "dist"]
-# Report issues of MEDIUM severity or higher
-level = "MEDIUM"
-# Report issues of MEDIUM confidence or higher
-confidence = "MEDIUM"
-{% endif -%}
-
-[tool.coverage.run]
-source = ["{{ module_name }}"]
-omit = [
-    "tests*",
-    "*/__main__.py",
-]
-
-[tool.coverage.report]
-fail_under = 23
-show_missing = true
+                {% if use_safety %}
+                    [tool.safety]
+                    # Define vulnerability IDs to ignore (e.g., ignore = ["51457"])
+                    # Using an empty list as a valid placeholder.
+                    ignore = []
+                {% endif -%}
+                [tool.coverage.run]
+                source = ["{{ module_name }}"]
+                omit = [
+                "tests*",
+                "*/__main__.py",
+                ]
+                [tool.coverage.report]
+                fail_under = 23
+                show_missing = true
