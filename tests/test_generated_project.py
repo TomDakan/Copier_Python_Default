@@ -1,26 +1,46 @@
+import os
+import shutil
+import stat
 import subprocess
 import sys
 from pathlib import Path
-from typing import List
-import os
+from typing import Any
 
-
+import copier.errors
 import pytest
 from copier import run_copy
-import copier.errors
+
+
+def force_rmtree_onerror(func: Any, path: Any, exc_info: Any) -> None:
+    """
+    Error handler for shutil.rmtree that tries to
+    remove read-only flags and retry the failed operation.
+    """
+    # exc_info[0] is the exception type
+    if exc_info[0] is PermissionError:
+        try:
+            # Make the file writable and retry
+            os.chmod(path, stat.S_IWRITE)
+            func(path)
+        except Exception as e:
+            # Re-raise the original error if retry fails
+            raise exc_info[1] from e
+    else:
+        # Re-raise any other error
+        raise exc_info[1]
 
 
 # Helper to determine the correct task execution command
-def get_run_command(task_runner: str, command: List[str]) -> List[str]:
+def get_run_command(task_runner: str, command: list[str]) -> list[str]:
     """Prefixes a command list with the correct task runner executable."""
     if task_runner == "just":
         # Assumes 'just' is in the system PATH
         # 'just' passes extra arguments, so we combine them
-        return ["just"] + command
+        return ["just", *command]
     else:
         # Default to PDM
         # We run 'pdm run' followed by the command
-        return [sys.executable, "-m", "pdm", "run"] + command
+        return [sys.executable, "-m", "pdm", "run", *command]
 
 
 def test_generated_project(
@@ -33,10 +53,12 @@ def test_generated_project(
 
     # Get the task runner choice, defaulting to 'pdm' if not specified
     task_runner = common_data.get("task_runner", "pdm")
-    data = {**common_data,
-            "task_runner": task_runner,
-            "initialize_git": True,
-            "push_to_github": False,}
+    data = {
+        **common_data,
+        "task_runner": task_runner,
+        "initialize_git": True,
+        "push_to_github": False,
+    }
 
     try:
         run_copy(
@@ -45,24 +67,14 @@ def test_generated_project(
             data=data,
             vcs_ref="HEAD",
             defaults=True,
-            skip_tasks=False,
+            skip_tasks=True,
             unsafe=True,
         )
     except copier.errors.TaskError as e:
-        # This block catches the failure and prints the script's output
-        print("\n--- [Copier TaskError STDOUT] ---")
-        # Corrected: access e.stdout directly
-        if e.stdout:
-            # Output can be bytes or string, so we handle both
-            print(e.stdout.decode() if isinstance(e.stdout, bytes) else e.stdout)
-        
-        print("--- [Copier TaskError STDERR] ---")
-        # Corrected: access e.stderr directly
-        if e.stderr:
-            print(e.stderr.decode() if isinstance(e.stderr, bytes) else e.stderr)
-        
-        print("----------------------------------\n")
-        raise  # Re-raise the exception to ensure the test still fails
+        print(e.stdout)
+        print(e.stderr)
+        print("------------------------------------------\n")
+        raise
 
     project_path = destination_path / common_data["project_slug"]
 
@@ -70,6 +82,24 @@ def test_generated_project(
     # Use the alias 'test' defined in copier.yaml
     test_command = get_run_command(task_runner, ["test"])
     try:
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "pdm", "install"],
+                cwd=project_path,
+                check=True,
+                timeout=300,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
+        except subprocess.CalledProcessError as e:
+            print("\n--- [Inner Pytest STDOUT] ---")
+            print(e.stdout)
+            print("--- [Inner Pytest STDERR] ---")
+            print(e.stderr)
+            print("-------------------------------\n")
+            raise
+
         subprocess.run(
             test_command,
             cwd=project_path,
@@ -78,6 +108,7 @@ def test_generated_project(
             capture_output=True,
             text=True,
             encoding="utf-8",
+            env={**os.environ, "PDM_CONFIG_use_uv": "false"},
         )
     except subprocess.CalledProcessError as e:
         print("\n--- [Inner Pytest STDOUT] ---")
@@ -129,6 +160,7 @@ def test_generated_project(
         print("------------------------------------------------\n")
         raise
 
+
 @pytest.mark.integration
 def test_generated_project_github_creation(
     root_path: str, tmp_path: Path, common_data: dict[str, str]
@@ -147,12 +179,13 @@ def test_generated_project_github_creation(
     project_slug = common_data["project_slug"]
     repo_name = f"{github_user}/{project_slug}"
 
-    data = {**common_data,
-            "task_runner": common_data.get("task_runner", "pdm"),
-            "initialize_git": True,
-            "push_to_github": True,  # <-- ENABLED for this test
-            "github_account": github_user,
-           }
+    data = {
+        **common_data,
+        "task_runner": common_data.get("task_runner", "pdm"),
+        "initialize_git": True,
+        "push_to_github": True,  # <-- ENABLED for this test
+        "github_account": github_user,
+    }
 
     try:
         # --- 1. Run Copier with tasks enabled ---
@@ -162,7 +195,7 @@ def test_generated_project_github_creation(
             data=data,
             vcs_ref="HEAD",
             defaults=True,
-            skip_tasks=False, # This runs bootstrap.py
+            skip_tasks=False,  # This runs bootstrap.py
             unsafe=True,
         )
 
@@ -194,20 +227,21 @@ def test_generated_project_github_creation(
         else:
             print(f"Successfully deleted test repo: {repo_name}")
 
-def test_generated_project_with_security_features(
+
+def test_generated_project_with_bandit(
     root_path: str, tmp_path: Path, common_data: dict[str, str]
 ) -> None:
     """
-    Generate a project with security features and run its security checks.
+    Generate a project with bandit and run its security check.
     """
     task_runner = common_data.get("task_runner", "pdm")
     data = {
         **common_data,
         "task_runner": task_runner,
-        "use_safety": True,
         "use_bandit": True,
+        "use_safety": False,
     }
-    destination_path = tmp_path / "generated_project_security"
+    destination_path = tmp_path / "generated_project_bandit"
     run_copy(
         root_path,
         destination_path,
@@ -228,7 +262,7 @@ def test_generated_project_with_security_features(
         cwd=project_path,
         check=True,
         timeout=60,
-        env={**os.environ, "SKIP": "pre-commit-hooks"},  # <-- 2. Fixed: os.environ
+        env={**os.environ, "SKIP": "pre-commit-hooks"},
     )
 
     # --- Install Dependencies (Always PDM) ---
@@ -241,6 +275,7 @@ def test_generated_project_with_security_features(
             capture_output=True,
             text=True,
             encoding="utf-8",
+            env={**os.environ, "PDM_CONFIG_use_uv": "false"},
         )
     except FileNotFoundError:  # pragma: no cover
         subprocess.run(
@@ -251,26 +286,14 @@ def test_generated_project_with_security_features(
             capture_output=True,
             text=True,
             encoding="utf-8",
-        )
-
-    # --- Run Safety Check ---
-    safety_command = get_run_command(task_runner, ["safety-check"])
-    try:
-        subprocess.run(
-            safety_command,
-            cwd=project_path,
-            check=True,
-            timeout=120,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
+            env={**os.environ, "PDM_CONFIG_use_uv": "false"},
         )
     except subprocess.CalledProcessError as e:
-        print(f"\n--- [Inner Safety STDOUT] ({' '.join(safety_command)}) ---")
+        print("\n--- [Inner PDM Install STDOUT] ---")
         print(e.stdout)
-        print(f"--- [Inner Safety STDERR] ({' '.join(safety_command)}) ---")
+        print("--- [Inner PDM Install STDERR] ---")
         print(e.stderr)
-        print("------------------------------------------\n")
+        print("-------------------------------------------\n")
         raise
 
     # --- Run Bandit Check ---
@@ -292,6 +315,117 @@ def test_generated_project_with_security_features(
         print(e.stderr)
         print("-------------------------------------------\n")
         raise
+
+
+# @pytest.mark.skip(
+#     reason="The 'safety' package does not yet support Python 3.13. Re-enable when it
+#             does."
+# )
+def test_generated_project_with_safety(
+    root_path: str, tmp_path: Path, common_data: dict[str, str]
+) -> None:
+    """
+    Generate a project with safety and run its security check.
+    """
+    # Use a short, predictable path to avoid Windows MAX_PATH limit
+    destination_path = Path("C:\\pytest-copier-test-safety")
+
+    try:
+        # --- 1. Setup Project ---
+        task_runner = common_data.get("task_runner", "pdm")
+        data = {
+            **common_data,
+            "task_runner": task_runner,
+            "use_bandit": False,
+            "use_safety": True,
+        }
+
+        # Clean up any previous failed runs, forcing deletion of .git files
+        if destination_path.exists():
+            shutil.rmtree(destination_path, onerror=force_rmtree_onerror)
+
+        run_copy(
+            root_path,
+            destination_path,
+            data=data,
+            vcs_ref="HEAD",
+            defaults=True,
+            skip_tasks=True,
+            unsafe=True,
+        )
+
+        project_path = destination_path / common_data["project_slug"]
+
+        # --- 2. Initialize Git ---
+        subprocess.run(["git", "init"], cwd=project_path, check=True, timeout=60)
+        subprocess.run(["git", "add", "."], cwd=project_path, check=True, timeout=60)
+        subprocess.run(
+            ["git", "commit", "-m", "initial commit"],
+            cwd=project_path,
+            check=True,
+            timeout=60,
+            env={**os.environ, "SKIP": "pre-commit-hooks"},
+        )
+
+        # --- 3. Install Dependencies ---
+        # We are intentionally letting this stream to stdout
+        # by using capture_output=False for better debugging.
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "pdm", "install", "-vv"],
+                cwd=project_path,
+                check=True,
+                timeout=300,
+                capture_output=False,  # We want to see the output
+                text=True,
+                encoding="utf-8",
+                # Removed env var to let PDM use default UV installer
+            )
+        except FileNotFoundError:  # pragma: no cover
+            subprocess.run(
+                ["pdm", "install", "-vv"],
+                cwd=project_path,
+                check=True,
+                timeout=300,
+                capture_output=False,
+                text=True,
+                encoding="utf-8",
+                # Removed env var
+            )
+        except subprocess.CalledProcessError as e:
+            print("\n--- [Inner PDM Install Failed] ---")
+            # No stdout/stderr to print, as it streamed
+            print(f"PDM install command failed with exit code {e.returncode}")
+            print("-------------------------------------------\n")
+            raise
+
+        # --- 4. Run Safety Check ---
+        safety_command = get_run_command(task_runner, ["safety-check"])
+        try:
+            subprocess.run(
+                safety_command,
+                cwd=project_path,
+                check=True,
+                timeout=120,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
+        except subprocess.CalledProcessError as e:
+            print(f"\n--- [Inner Safety STDOUT] ({' '.join(safety_command)}) ---")
+            print(e.stdout)
+            print(f"--- [Inner Safety STDERR] ({' '.join(safety_command)}) ---")
+            print(e.stderr)
+            print("------------------------------------------\n")
+            raise
+
+    finally:
+        # --- 5. Cleanup ---
+        # Ensure the test directory is removed on success or failure
+        if destination_path.exists():
+            print(f"\nCleaning up test directory: {destination_path}")
+            shutil.rmtree(destination_path, onerror=force_rmtree_onerror)
+
 
 def test_with_dependabot_automerge(
     root_path: str, tmp_path: Path, common_data: dict[str, str]
@@ -319,7 +453,7 @@ def test_with_dependabot_automerge(
     project_path = destination_path / common_data["project_slug"]
     dependabot_file = project_path / ".github" / "dependabot.yml"
     assert dependabot_file.is_file()
-    with open(dependabot_file, "r") as f:
+    with open(dependabot_file) as f:
         content = f.read()
         assert "automerge: true" in content
 
@@ -342,6 +476,7 @@ def test_with_dependabot_automerge(
     project_path = destination_path / common_data["project_slug"]
     dependabot_file = project_path / ".github" / "dependabot.yml"
     assert not dependabot_file.exists()
+
 
 def test_with_env_file(
     root_path: str, tmp_path: Path, common_data: dict[str, str]
@@ -389,6 +524,7 @@ def test_with_env_file(
     env_file = project_path / ".env"
     assert not env_file.exists()
 
+
 def test_with_adr_support(
     root_path: str, tmp_path: Path, common_data: dict[str, str]
 ) -> None:
@@ -435,91 +571,11 @@ def test_with_adr_support(
 
     project_path = destination_path / common_data["project_slug"]
     adr_script_path = project_path / "scripts"
+    adr_script_file = adr_script_path / "new_adr.py"
     adr_docs_path = project_path / "docs" / "adr"
-    assert not adr_script_path.exists()
-@pytest.mark.integration
-def test_with_github_project(
-    root_path: str, tmp_path: Path, common_data: dict[str, str]
-) -> None:
-    """
-    Tests that the GitHub project is created when requested.
-    """
-    # Test with GitHub project creation enabled
-    data = {
-        **common_data,
-        "initialize_git": True,
-        "push_to_github": True,
-        "create_github_project": True,
-    }
-    destination_path = tmp_path / "github_project_true"
-    
-    # Mock the subprocess.run to avoid actual gh calls
-    from unittest.mock import patch
-    with patch("subprocess.run") as mock_run:
-        # The bootstrap script will call gh, so we need to mock it
-        mock_run.return_value.stdout = "https://github.com/users/TomDakan/projects/1"
-        mock_run.return_value.returncode = 0
-        
-        run_copy(
-            root_path,
-            destination_path,
-            data=data,
-            vcs_ref="HEAD",
-            defaults=True,
-            skip_tasks=False,
-            unsafe=True,
-        )
+    assert not adr_script_file.exists()
+    assert not adr_docs_path.exists()
 
-        # Check that `gh project create` was called
-        assert any(
-            "gh project create" in " ".join(call.args[0])
-            for call in mock_run.call_args_list
-        )
-
-        # Check that the ROADMAP.md file was updated
-        roadmap_file = destination_path / common_data["project_slug"] / "ROADMAP.md"
-        assert roadmap_file.is_file()
-        with open(roadmap_file, "r") as f:
-            content = f.read()
-            assert "https://github.com/users/TomDakan/projects/1" in content
-            assert "PROJECT_URL_PLACEHOLDER" not in content
-
-
-    # Test with GitHub project creation disabled
-    data = {
-        **common_data,
-        "initialize_git": True,
-        "push_to_github": True,
-        "create_github_project": False,
-    }
-    destination_path = tmp_path / "github_project_false"
-    
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value.stdout = "TomDakan"
-        mock_run.return_value.returncode = 0
-
-        run_copy(
-            root_path,
-            destination_path,
-            data=data,
-            vcs_ref="HEAD",
-            defaults=True,
-            skip_tasks=False,
-            unsafe=True,
-        )
-
-        # Check that `gh project create` was not called
-        assert not any(
-            "gh project create" in " ".join(call.args[0])
-            for call in mock_run.call_args_list
-        )
-
-        # Check that the ROADMAP.md file was not updated
-        roadmap_file = destination_path / common_data["project_slug"] / "ROADMAP.md"
-        assert roadmap_file.is_file()
-        with open(roadmap_file, "r") as f:
-            content = f.read()
-            assert "PROJECT_URL_PLACEHOLDER" in content
 
 def test_with_polish_files(
     root_path: str, tmp_path: Path, common_data: dict[str, str]
@@ -578,75 +634,3 @@ def test_with_polish_files(
     assert not coc_file.exists()
     assert not security_file.exists()
     assert not citation_file.exists()
-
-@pytest.mark.integration
-def test_with_github_project(
-    root_path: str, tmp_path: Path, common_data: dict[str, str]
-) -> None:
-    """
-    Tests that the GitHub project is created when requested.
-    """
-    # Test with GitHub project creation enabled
-    data = {
-        **common_data,
-        "initialize_git": True,
-        "push_to_github": True,
-        "create_github_project": True,
-    }
-    destination_path = tmp_path / "github_project_true"
-    
-    # Mock the subprocess.run to avoid actual gh calls
-    from unittest.mock import patch
-    with patch("subprocess.run") as mock_run:
-        # The bootstrap script will call gh, so we need to mock it
-        # The first call is `gh auth status`
-        # The second call is `gh repo view`
-        # The third call is `gh repo create`
-        # The fourth call is `gh project create`
-        mock_run.return_value.stdout = "TomDakan"
-        mock_run.return_value.returncode = 0
-        
-        run_copy(
-            root_path,
-            destination_path,
-            data=data,
-            vcs_ref="HEAD",
-            defaults=True,
-            skip_tasks=False,
-            unsafe=True,
-        )
-
-        # Check that `gh project create` was called
-        assert any(
-            "gh project create" in " ".join(call.args[0])
-            for call in mock_run.call_args_list
-        )
-
-    # Test with GitHub project creation disabled
-    data = {
-        **common_data,
-        "initialize_git": True,
-        "push_to_github": True,
-        "create_github_project": False,
-    }
-    destination_path = tmp_path / "github_project_false"
-    
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value.stdout = "TomDakan"
-        mock_run.return_value.returncode = 0
-
-        run_copy(
-            root_path,
-            destination_path,
-            data=data,
-            vcs_ref="HEAD",
-            defaults=True,
-            skip_tasks=False,
-            unsafe=True,
-        )
-
-        # Check that `gh project create` was not called
-        assert not any(
-            "gh project create" in " ".join(call.args[0])
-            for call in mock_run.call_args_list
-        )

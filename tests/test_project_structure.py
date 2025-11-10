@@ -20,7 +20,7 @@ def test_defaults(root_path: str, tmp_path: Path, common_data: dict[str, str]) -
     assert (project_path / "README.md").exists()
     assert (project_path / "src" / "test_project").exists()
     assert (project_path / "src" / "test_project" / "__init__.py").exists()
-    assert (project_path / ".pre-commit-config.yaml").exists()
+    assert not (project_path / ".pre-commit-config.yaml").exists()
     assert (project_path / "tests").exists()
     assert (project_path / "src" / "test_project" / "py.typed").exists()
 
@@ -134,13 +134,14 @@ def test_task_runner_pdm(
 def test_task_runner_just(
     root_path: str, tmp_path: Path, common_data: dict[str, str]
 ) -> None:
-    """Verify justfile is generated and pdm scripts are absent when task_runner is just."""
+    """Verify justfile is generated and pdm scripts are absent when task_runner is
+    just."""
     destination_path = tmp_path / "generated_project_just"
     data = {
         **common_data,
         "task_runner": "just",
-        "use_safety": False,  # Ensure safety is off for this default check
-        "use_bandit": False,  # Ensure bandit is off
+        "use_safety": False,
+        "use_bandit": False,
     }
     run_copy(
         root_path,
@@ -289,8 +290,6 @@ def test_with_cli(root_path: str, tmp_path: Path, common_data: dict[str, str]) -
 
     # Get dependency lists
     main_deps = toml_data.get("project", {}).get("dependencies", [])
-    # pdm_dev_deps_groups = toml_data.get("tool", {}).get("pdm", {}).get("dev-dependencies", {})
-    # dev_deps = pdm_dev_deps_groups.get("dev", []) # Adjust "dev" if needed
 
     assert "typer[all]" in main_deps
     assert "rich" in main_deps
@@ -536,6 +535,7 @@ def test_with_detect_secrets(
     destination_path = tmp_path / "generated_project_detect_secrets"
     data = {
         **common_data,
+        "precommit_install": True,
         "use_detect_secrets": True,
     }
     run_copy(
@@ -560,3 +560,163 @@ def test_with_detect_secrets(
     assert (
         "id: detect-secrets-baseline" in pre_commit_content
     )  # Check for the baseline hook
+
+
+def test_task_tracking(
+    root_path: str, tmp_path: Path, common_data: dict[str, str]
+) -> None:
+    """Verify that the task tracking files are generated correctly."""
+    # Test with TODO.md
+    destination_path = tmp_path / "generated_project_todo"
+    data = {
+        **common_data,
+        "task_tracking": "TODO.md",
+    }
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+    project_path = destination_path / common_data["project_slug"]
+    assert (project_path / "TODO.md").exists()
+
+    # Test with GitHub Projects
+    destination_path = tmp_path / "generated_project_github_projects"
+    data = {
+        **common_data,
+        "task_tracking": "GitHub Projects",
+    }
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+    project_path = destination_path / common_data["project_slug"]
+    assert not (project_path / "TODO.md").exists()
+
+    # Test with None
+    destination_path = tmp_path / "generated_project_no_task_tracking"
+    data = {
+        **common_data,
+        "task_tracking": "None",
+    }
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+    project_path = destination_path / common_data["project_slug"]
+    assert not (project_path / "TODO.md").exists()
+
+
+def test_with_semantic_release(
+    root_path: str, tmp_path: Path, common_data: dict[str, str]
+) -> None:
+    """Verify that the semantic-release files are generated correctly."""
+    # Test with semantic-release enabled
+    destination_path = tmp_path / "generated_project_semantic_release"
+    data = {
+        **common_data,
+        "use_semantic_release": True,
+    }
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+    project_path = destination_path / common_data["project_slug"]
+    assert (project_path / ".github" / "workflows" / "release.yaml").exists()
+    content = (project_path / "pyproject.toml").read_text()
+    toml_data = tomllib.loads(content)
+    pdm_dev_deps_groups = (
+        toml_data.get("tool", {}).get("pdm", {}).get("dev-dependencies", {})
+    )
+    dev_deps = pdm_dev_deps_groups.get("dev", [])
+    assert "python-semantic-release" in dev_deps
+
+    # Test with semantic-release disabled
+    destination_path = tmp_path / "generated_project_no_semantic_release"
+    data = {
+        **common_data,
+        "use_semantic_release": False,
+    }
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+    project_path = destination_path / common_data["project_slug"]
+    assert not (project_path / ".github" / "workflows" / "release.yaml").exists()
+    content = (project_path / "pyproject.toml").read_text()
+    toml_data = tomllib.loads(content)
+    pdm_dev_deps_groups = (
+        toml_data.get("tool", {}).get("pdm", {}).get("dev-dependencies", {})
+    )
+    dev_deps = pdm_dev_deps_groups.get("dev", [])
+    assert "python-semantic-release" not in dev_deps
+
+
+def test_with_docs(root_path: str, tmp_path: Path, common_data: dict[str, str]) -> None:
+    """Verify that the documentation files are generated correctly."""
+    # Test with docs enabled
+    destination_path = tmp_path / "generated_project_docs"
+    data = {
+        **common_data,
+        "use_docs": True,
+        "use_mkdocstrings": True,
+        "doc_hosting_provider": "Read the Docs",
+    }
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+    project_path = destination_path / common_data["project_slug"]
+    assert (project_path / "docs").exists()
+    assert (project_path / "mkdocs.yml").exists()
+    assert (project_path / "docs" / "api.md").exists()
+    assert (project_path / ".github" / "workflows" / "docs.yaml").exists()
+
+    # Test with docs disabled
+    destination_path = tmp_path / "generated_project_no_docs"
+    data = {
+        **common_data,
+        "use_docs": False,
+    }
+    run_copy(
+        root_path,
+        destination_path,
+        data=data,
+        vcs_ref="HEAD",
+        defaults=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+    project_path = destination_path / common_data["project_slug"]
+    assert not (project_path / "docs").exists()
+    assert not (project_path / "mkdocs.yml").exists()
+    assert not (project_path / ".github" / "workflows" / "docs.yaml").exists()
