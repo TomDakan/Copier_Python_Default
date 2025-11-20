@@ -97,7 +97,6 @@ markers = [ "integration: tests that require network access and external service
 omit = ["tests*"]
 
 [tool.coverage.report]
-# Optional: Fail the test run if coverage is below 100%
 fail_under = 90
 show_missing = true
 

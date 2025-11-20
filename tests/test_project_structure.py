@@ -346,6 +346,7 @@ def test_with_badges(root_path: str, tmp_path: Path, common_data: dict[str, str]
     data = {
         **common_data,
         "badges": True,
+        "use_codecov": True,
     }
     run_copy(
         root_path,

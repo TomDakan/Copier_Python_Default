@@ -1,8 +1,11 @@
-[![Build Status](https://github.com/TomDakan/Copier_Python_Default/actions/workflows/main.yaml/badge.svg)](https://github.com/{{ github_account }}/{{ project_slug }}/actions/workflows/main.yaml)
-[![Documentation Status](https://github.com/TomDakan/Copier_Python_Default/actions/workflows/docs.yaml/badge.svg)](https://github.com//actions/workflows/docs.yaml)
+[![Build Status](https://github.com/TomDakan/Copier_Python_Default/actions/workflows/main.yaml/badge.svg)](https://github.com/TomDakan/Copier_Python_Default/actions/workflows/main.yaml)
+[![Documentation Status](https://github.com/TomDakan/Copier_Python_Default/actions/workflows/docs.yaml/badge.svg)](https://github.com/TomDakan/Copier_Python_Default/actions/workflows/docs.yaml)
 [![Coverage Status](https://codecov.io/gh/TomDakan/Copier_Python_Default/branch/main/graph/badge.svg)](https://codecov.io/gh/TomDakan/Copier_Python_Default)
 
 # Opinionated Python Project Template
+
+> [!NOTE]
+> Projects generated from this template will feature dynamic badges reflecting their specific repository and CI/CD status.
 
 This is a project template that spins up a new python project in about a minute. You must have python and the copier package installed to use it.
 
@@ -32,10 +35,13 @@ I'm designing this project with the intention of being able to support subprojec
 
 ## Dependencies
 
-This template assumes that you have the following python packages installed:
+This template assumes that you have the following tools installed:
 
+    * mise
+    * pdm
     * copier
-    *  GitHub CLI (gh): (Optional)
+    * GitHub CLI (gh): (Optional)
+    * just (Optional)
 
 This template uses the github cli tool to commit and push to github at the end of the setup process. You will need to have ghcli installed and authenticated for that to work: <https://cli.github.com/manual/>
 
@@ -44,5 +50,5 @@ This template uses the github cli tool to commit and push to github at the end o
 You can use the following one-line commands to build a project from this repo without checking it out.
 
 ```bash
-copier copy --trust gh:tomdakan/main_python_template .
+copier copy --trust gh:TomDakan/Copier_Python_Default .
 ```

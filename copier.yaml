@@ -1,10 +1,19 @@
 _version: v1.0.0
+_answers_file: .copier-answers.yml
 
 _envops:
-  block_start_string: '{%'
-  block_end_string: '%}'
-  variable_start_string: '{{'
-  variable_end_string: '}}'
+  block_start_string: "{%"
+  block_end_string: "%}"
+  variable_start_string: "{{"
+  variable_end_string: "}}"
+
+_skip_if_exists:
+  - LICENSE
+  - CODE_OF_CONDUCT.md
+  - SECURITY.md
+  - CITATION.cff
+  - GEMINI.md
+  - mkdocs.yml
 
 license:
   type: str
@@ -207,24 +216,6 @@ add_citation_cff:
   help: Add a CITATION.cff file?
   default: true
 
-badge_build:
-  type: str
-  help: Build badge markdown (leave blank to skip)
-  default: ""
-  when: badges
-
-badge_coverage:
-  type: str
-  help: Coverage badge markdown (leave blank to skip)
-  default: ""
-  when: badges
-
-badge_docs:
-  type: str
-  help: Docs badge markdown (leave blank to skip)
-  default: ""
-  when: badges
-
 # --- Project Dependencies ---
 tool_typer:
   default:
@@ -398,7 +389,7 @@ doc_tools:
 
 # --- Pytest Markers ---
 pytest_marker_definitions:
-  when: false  # This makes it a data-only variable
+  when: false # This makes it a data-only variable
   default:
     unit:
       name: "unit"
@@ -539,7 +530,8 @@ _exclude:
 
   - "{% if not docker_support %}{{ project_slug }}/docker-compose.yml{% endif %}"
 
-  - "{% if not cli %}{{ project_slug }}/src/{{ module_name }}/cli/__main__.py{% endif %}"
+  - "{% if not cli %}{{ project_slug }}/tests/test_cli.py{% endif %}"
+  - "{% if config_library == 'none' %}{{ project_slug }}/tests/test_settings.py{% endif %}"
 
   # Conditionally exclude security tools
   - "{% if not use_dependabot %}{{ project_slug }}/.github/dependabot.yml{% endif %}"

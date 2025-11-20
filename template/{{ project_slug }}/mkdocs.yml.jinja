@@ -9,5 +9,20 @@ python:
 options:
 show_root_heading: yes
 nav:
-- Home: index.md
-- API Reference: api.md
+  - Home: index.md
+  - Project Context:
+    - Meta: 00_meta/
+    - Requirements: 10_requirements/
+    - Architecture: 20_architecture/
+    - Data: 30_data/
+    {% if include_hardware_docs %}
+    - Hardware: 40_hardware/
+    {% endif %}
+    {% if include_qa_docs %}
+    - QA: 50_qa/
+    {% endif %}
+    - Ops: 60_ops/
+    {% if include_legal_docs %}
+    - Legal: 70_legal/
+    {% endif %}
+  - API Reference: api.md

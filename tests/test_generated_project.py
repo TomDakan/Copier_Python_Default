@@ -84,7 +84,7 @@ def test_generated_project(
     try:
         try:
             subprocess.run(
-                [sys.executable, "-m", "pdm", "install"],
+                [sys.executable, "-m", "pdm", "install", "-G", ":all"],
                 cwd=project_path,
                 check=True,
                 timeout=300,

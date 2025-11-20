@@ -111,3 +111,6 @@ dmypy.json
 
 # copier
 .copier-answers.yml
+
+# Local reproduction output
+repro_output/
